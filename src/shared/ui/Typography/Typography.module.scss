@@ -1,0 +1,41 @@
+.typography {
+  margin: 0;
+  font-family: Inter, system-ui, sans-serif;
+  color: inherit;
+}
+
+.h1 {
+  font-size: 48px;
+  line-height: 56px;
+  font-weight: 700;
+}
+
+.h2 {
+  font-size: 36px;
+  line-height: 44px;
+  font-weight: 700;
+}
+
+.h3 {
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+}
+
+.body {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+}
+
+.bodySmall {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+}
+
+.caption {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+}

@@ -1,0 +1,38 @@
+.detailsCard {
+  padding: 22px;
+
+  h2 {
+    margin: 0 0 18px;
+    color: #f8fafc;
+    font-size: 20px;
+  }
+}
+
+.details {
+  display: grid;
+  gap: 14px;
+
+  div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  }
+
+  span {
+    color: #94a3b8;
+    font-size: 14px;
+  }
+
+  strong {
+    color: #f8fafc;
+    font-size: 14px;
+    text-align: right;
+  }
+}
+
+.empty {
+  color: #94a3b8;
+}

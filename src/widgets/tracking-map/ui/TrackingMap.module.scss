@@ -1,0 +1,98 @@
+.map {
+  height: 560px;
+  min-height: 560px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mapContainer {
+  width: 100%;
+  height: 560px;
+  min-height: 560px;
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+:global(.mapboxgl-map) {
+  width: 100%;
+  height: 100%;
+}
+
+:global(.mapboxgl-canvas-container) {
+  width: 100%;
+  height: 100%;
+}
+
+:global(.mapboxgl-canvas) {
+  outline: none;
+}
+
+:global(.mapboxgl-ctrl-bottom-right) {
+  z-index: 3;
+}
+
+.vehicleMarker {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background-color: #111827;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 18px 18px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.92);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.vehicleMarker[data-type="truck"] {
+  background-image: url("/icons/truck-marker.svg");
+}
+
+.vehicleMarker[data-type="van"] {
+  background-image: url("/icons/van-marker.svg");
+}
+
+.vehicleMarker[data-type="bike"] {
+  background-image: url("/icons/bike-marker.svg");
+}
+
+.vehicleMarkerActive {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.35);
+}
+
+.routePointStart,
+.routePointFinish {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 16px 16px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95);
+}
+
+.routePointStart {
+  background-color: #16a34a;
+}
+
+.routePointFinish {
+  background-color: #dc2626;
+}
+
+.routePointStart[data-type="truck"],
+.routePointFinish[data-type="truck"] {
+  background-image: url("/icons/truck-marker.svg");
+}
+
+.routePointStart[data-type="van"],
+.routePointFinish[data-type="van"] {
+  background-image: url("/icons/van-marker.svg");
+}
+
+.routePointStart[data-type="bike"],
+.routePointFinish[data-type="bike"] {
+  background-image: url("/icons/bike-marker.svg");
+}

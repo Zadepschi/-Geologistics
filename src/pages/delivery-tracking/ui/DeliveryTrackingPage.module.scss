@@ -1,0 +1,11 @@
+.page {
+  display: grid;
+  gap: 18px;
+}
+
+.topGrid {
+  display: grid;
+  grid-template-columns: 320px 1fr 300px;
+  gap: 18px;
+  align-items: start;
+}

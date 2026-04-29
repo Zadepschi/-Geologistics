@@ -1,0 +1,16 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.green { background: rgba(0, 229, 155, 0.14); color: var(--accent); }
+.blue { background: rgba(28, 124, 255, 0.16); color: var(--accent-2); }
+.yellow { background: rgba(240, 181, 72, 0.16); color: var(--warning); }
+.red { background: rgba(255, 90, 95, 0.14); color: var(--danger); }
+.purple { background: rgba(139, 108, 255, 0.18); color: var(--purple); }
+.gray { background: rgba(255, 255, 255, 0.08); color: var(--text-muted); }

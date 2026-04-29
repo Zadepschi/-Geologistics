@@ -1,0 +1,10 @@
+.page {
+  display: grid;
+  gap: 18px;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 18px;
+}

@@ -1,0 +1,1 @@
+export { OrderDetailsWidget } from "./ui/OrderDetailsWidget";

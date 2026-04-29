@@ -1,0 +1,6 @@
+@use "@/app/styles/mixins.scss" as *;
+
+.card {
+  @include glass-card;
+  border-radius: var(--radius-md);
+}

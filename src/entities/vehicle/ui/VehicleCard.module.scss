@@ -1,0 +1,106 @@
+.card {
+  width: 100%;
+  min-height: 52px;
+  padding: 4px 8px;
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+  gap: 12px;
+
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #0b1626 0%, #091321 100%);
+
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease,
+    background 0.2s ease;
+
+  &:hover {
+    border-color: rgba(0, 224, 168, 0.18);
+    transform: translateY(-1px);
+  }
+}
+
+.active {
+  border-color: #00d9a6;
+  box-shadow:
+    0 0 0 1px rgba(0, 217, 166, 0.22),
+    0 0 18px rgba(0, 217, 166, 0.12);
+}
+
+.iconBox {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.truck {
+  background: rgba(201, 185, 129, 0.12);
+  color: #d7c88a;
+}
+
+.van {
+  background: rgba(167, 180, 210, 0.12);
+  color: #c7d2e4;
+}
+
+.bike {
+  background: rgba(55, 219, 169, 0.12);
+  color: #21d7a1;
+}
+
+.maintenanceIcon {
+  background: rgba(255, 163, 72, 0.12);
+  color: #ffb357;
+}
+
+.content {
+  min-width: 0;
+}
+
+.title {
+  color: #f4f7fb;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(202, 212, 226, 0.82);
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #00d98b;
+  flex-shrink: 0;
+}
+
+.dotIdle {
+  background: #8a94a6;
+}
+
+.dotMaintenance {
+  background: #ff7a59;
+}

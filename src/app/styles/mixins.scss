@@ -1,0 +1,29 @@
+@mixin glass-card {
+  background: linear-gradient(
+    180deg,
+    rgba(13, 21, 38, 0.96) 0%,
+    rgba(10, 16, 30, 0.9) 100%
+  );
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+@mixin neon-outline($color: var(--accent)) {
+  border: 1px solid color-mix(in srgb, #000 20%, #fff 0%);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, $color 38%, transparent),
+    0 0 22px color-mix(in srgb, $color 22%, transparent);
+}
+
+@mixin scrollbar {
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+  }
+}
