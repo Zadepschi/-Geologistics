@@ -5,6 +5,8 @@ import { DashboardPage } from "@/pages/dashboard";
 import { DeliveryTrackingPage } from "@/pages/delivery-tracking";
 import { DispatchPage } from "@/pages/dispatch";
 import { FleetPage } from "@/pages/fleet";
+import { DriversPage } from "@/pages/drivers";
+import { ClientsPage } from "@/pages/clients";
 
 import { routes } from "@/shared/config/routes";
 
@@ -19,6 +21,8 @@ export const AppRouter = () => {
         />
         <Route path={routes.dispatch} element={<DispatchPage />} />
         <Route path={routes.fleet} element={<FleetPage />} />
+        <Route path={routes.drivers} element={<DriversPage />} />
+        <Route path={routes.clients} element={<ClientsPage />} />
       </Route>
     </Routes>
   );

@@ -1,6 +1,9 @@
+export type DriverStatus = "available" | "on-duty" | "off-duty";
+
 export interface Driver {
   id: string;
   name: string;
-  rating: number;
   phone: string;
+  status: DriverStatus;
+  vehicleId?: string;
 }

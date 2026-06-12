@@ -1,0 +1,85 @@
+.card {
+  padding: 22px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+
+  h2 {
+    margin: 0;
+    color: #f8fafc;
+    font-size: 22px;
+  }
+
+  span {
+    background: #1e293b;
+    color: #f8fafc;
+    padding: 6px 12px;
+    border-radius: 999px;
+  }
+}
+
+.list {
+  display: grid;
+  gap: 14px;
+}
+
+.driverCard {
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+
+  h3 {
+    margin: 0;
+    color: #f8fafc;
+    font-size: 17px;
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: #94a3b8;
+    font-size: 14px;
+  }
+}
+
+.status {
+  color: #34d399;
+  font-size: 13px;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.info {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  span {
+    color: #94a3b8;
+    font-size: 12px;
+  }
+
+  strong {
+    color: #f8fafc;
+    font-size: 14px;
+  }
+}
