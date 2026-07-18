@@ -4,23 +4,22 @@ import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
 import "./styles/index.scss";
 
-
 async function enableMocking() {
-  if (import.meta.env.DEV) {
-    const { worker } = await import("../mocks/browser");
-    await worker.start({
-      onUnhandledRequest: "warn",
-    });
-  }
+  const { worker } = await import("../mocks/browser");
+
+  await worker.start({
+    onUnhandledRequest: "bypass",
+  });
 }
 
-
 enableMocking().then(() => {
-  ReactDOM.createRoot(document.getElementById("root")!).render(
+  ReactDOM.createRoot(
+    document.getElementById("root")!
+  ).render(
     <React.StrictMode>
       <BrowserRouter>
         <App />
       </BrowserRouter>
-    </React.StrictMode>,
+    </React.StrictMode>
   );
 });
