@@ -1,15 +1,15 @@
 import { Card } from "@/shared/ui/card/Card";
-import styles from "./VehiclesPanel.module.scss";
 import { VehicleCard } from "@/entities/vehicle/ui/VehicleCard";
 import { useFleetStore } from "@/shared/store/fleet";
-import { useLoadVehicles } from "@/features/fleet/model/useLoadVehicles";
+
+import styles from "./VehiclesPanel.module.scss";
 
 export const VehiclesPanel = () => {
-  useLoadVehicles();
-
   const vehicles = useFleetStore((s) => s.vehicles);
   const selectedVehicleId = useFleetStore((s) => s.selectedVehicleId);
-  const setSelectedVehicleId = useFleetStore((s) => s.setSelectedVehicleId);
+  const setSelectedVehicleId = useFleetStore(
+    (s) => s.setSelectedVehicleId
+  );
 
   return (
     <Card className={styles.panel}>

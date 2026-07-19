@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+
 import { Card } from "@/shared/ui/card/Card";
 import { useFleetStore } from "@/shared/store/fleet";
-import { useLoadVehicles } from "@/features/fleet/model/useLoadVehicles";
 import { useLiveTracking } from "@/features/live-tracking/model/useLiveTracking";
-import styles from "./TrackingMap.module.scss";
 import type { Vehicle } from "@/entities/vehicle/model/types";
+
+import styles from "./TrackingMap.module.scss";
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -25,8 +26,12 @@ const toLineFeature = (coordinates: [number, number][]) => ({
   },
 });
 
-const createVehicleMarkerElement = (vehicle: Vehicle, active: boolean) => {
+const createVehicleMarkerElement = (
+  vehicle: Vehicle,
+  active: boolean
+) => {
   const el = document.createElement("button");
+
   el.type = "button";
   el.className = styles.vehicleMarker;
   el.dataset.type = vehicle.type;
@@ -43,31 +48,48 @@ const createRoutePointElement = (
   type: Vehicle["type"]
 ) => {
   const el = document.createElement("div");
+
   el.className =
-    kind === "start" ? styles.routePointStart : styles.routePointFinish;
+    kind === "start"
+      ? styles.routePointStart
+      : styles.routePointFinish;
+
   el.dataset.type = type;
+
   return el;
 };
 
 export const TrackingMap = () => {
-  useLoadVehicles();
   useLiveTracking();
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const vehicleMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
+
+  const vehicleMarkersRef = useRef<Map<string, mapboxgl.Marker>>(
+    new Map()
+  );
+
   const startMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const finishMarkerRef = useRef<mapboxgl.Marker | null>(null);
+
   const focusedVehicleIdRef = useRef<string | null>(null);
 
   const [isMapLoaded, setIsMapLoaded] = useState(false);
 
   const vehicles = useFleetStore((s) => s.vehicles);
-  const selectedVehicleId = useFleetStore((s) => s.selectedVehicleId);
-  const setSelectedVehicleId = useFleetStore((s) => s.setSelectedVehicleId);
+
+  const selectedVehicleId = useFleetStore(
+    (s) => s.selectedVehicleId
+  );
+
+  const setSelectedVehicleId = useFleetStore(
+    (s) => s.setSelectedVehicleId
+  );
 
   const selectedVehicle =
-    vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? null;
+    vehicles.find(
+      (vehicle) => vehicle.id === selectedVehicleId
+    ) ?? null;
 
   const clearSelectedRoute = (map: mapboxgl.Map) => {
     if (map.getLayer(routeLayerId)) {
@@ -88,12 +110,15 @@ export const TrackingMap = () => {
 
     startMarkerRef.current?.remove();
     finishMarkerRef.current?.remove();
+
     startMarkerRef.current = null;
     finishMarkerRef.current = null;
   };
 
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+    if (!mapContainerRef.current || mapRef.current) {
+      return;
+    }
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -102,7 +127,10 @@ export const TrackingMap = () => {
       zoom: 11,
     });
 
-    map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
+    map.addControl(
+      new mapboxgl.NavigationControl(),
+      "bottom-right"
+    );
 
     map.on("load", () => {
       setIsMapLoaded(true);
@@ -111,26 +139,39 @@ export const TrackingMap = () => {
     mapRef.current = map;
 
     return () => {
-      vehicleMarkersRef.current.forEach((marker) => marker.remove());
+      vehicleMarkersRef.current.forEach((marker) => {
+        marker.remove();
+      });
+
       vehicleMarkersRef.current.clear();
 
       clearSelectedRoute(map);
 
       map.remove();
       mapRef.current = null;
+
       setIsMapLoaded(false);
     };
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !isMapLoaded) return;
 
-    const currentIds = new Set(vehicles.map((vehicle) => vehicle.id));
-    const existingIds = new Set(vehicleMarkersRef.current.keys());
+    if (!map || !isMapLoaded) {
+      return;
+    }
+
+    const currentIds = new Set(
+      vehicles.map((vehicle) => vehicle.id)
+    );
+
+    const existingIds = new Set(
+      vehicleMarkersRef.current.keys()
+    );
 
     vehicles.forEach((vehicle) => {
-      const existingMarker = vehicleMarkersRef.current.get(vehicle.id);
+      const existingMarker =
+        vehicleMarkersRef.current.get(vehicle.id);
 
       if (existingMarker) {
         existingMarker.setLngLat([
@@ -138,7 +179,9 @@ export const TrackingMap = () => {
           vehicle.telemetry.lat,
         ]);
 
-        const el = existingMarker.getElement() as HTMLButtonElement;
+        const el =
+          existingMarker.getElement() as HTMLButtonElement;
+
         el.className = styles.vehicleMarker;
         el.dataset.type = vehicle.type;
 
@@ -159,43 +202,70 @@ export const TrackingMap = () => {
       };
 
       const marker = new mapboxgl.Marker(el)
-        .setLngLat([vehicle.telemetry.lng, vehicle.telemetry.lat])
+        .setLngLat([
+          vehicle.telemetry.lng,
+          vehicle.telemetry.lat,
+        ])
         .addTo(map);
 
-      vehicleMarkersRef.current.set(vehicle.id, marker);
+      vehicleMarkersRef.current.set(
+        vehicle.id,
+        marker
+      );
     });
 
     existingIds.forEach((id) => {
-      if (currentIds.has(id)) return;
+      if (currentIds.has(id)) {
+        return;
+      }
 
-      const marker = vehicleMarkersRef.current.get(id);
+      const marker =
+        vehicleMarkersRef.current.get(id);
+
       marker?.remove();
+
       vehicleMarkersRef.current.delete(id);
     });
-  }, [vehicles, selectedVehicleId, setSelectedVehicleId, isMapLoaded]);
+  }, [
+    vehicles,
+    selectedVehicleId,
+    setSelectedVehicleId,
+    isMapLoaded,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !isMapLoaded) return;
+
+    if (!map || !isMapLoaded) {
+      return;
+    }
 
     if (!selectedVehicle) {
       clearSelectedRoute(map);
       focusedVehicleIdRef.current = null;
+
       return;
     }
 
-    const routePath = selectedVehicle.route?.path ?? [];
-    const completedPath = selectedVehicle.route?.completedPath ?? [];
+    const routePath =
+      selectedVehicle.route?.path ?? [];
+
+    const completedPath =
+      selectedVehicle.route?.completedPath ?? [];
 
     if (routePath.length < 2) {
       clearSelectedRoute(map);
+
       return;
     }
 
-    const fullRouteData = toLineFeature(routePath);
-    const fullRouteSource = map.getSource(routeSourceId) as
-      | mapboxgl.GeoJSONSource
-      | undefined;
+    const fullRouteData =
+      toLineFeature(routePath);
+
+    const fullRouteSource =
+      map.getSource(routeSourceId) as
+        | mapboxgl.GeoJSONSource
+        | undefined;
 
     if (fullRouteSource) {
       fullRouteSource.setData(fullRouteData);
@@ -222,13 +292,18 @@ export const TrackingMap = () => {
     }
 
     if (completedPath.length >= 2) {
-      const completedRouteData = toLineFeature(completedPath);
-      const completedRouteSource = map.getSource(completedRouteSourceId) as
-        | mapboxgl.GeoJSONSource
-        | undefined;
+      const completedRouteData =
+        toLineFeature(completedPath);
+
+      const completedRouteSource =
+        map.getSource(completedRouteSourceId) as
+          | mapboxgl.GeoJSONSource
+          | undefined;
 
       if (completedRouteSource) {
-        completedRouteSource.setData(completedRouteData);
+        completedRouteSource.setData(
+          completedRouteData
+        );
       } else {
         map.addSource(completedRouteSourceId, {
           type: "geojson",
@@ -263,29 +338,42 @@ export const TrackingMap = () => {
     finishMarkerRef.current?.remove();
 
     if (selectedVehicle.route?.start) {
-      startMarkerRef.current = new mapboxgl.Marker(
-        createRoutePointElement("start", selectedVehicle.type)
-      )
-        .setLngLat(selectedVehicle.route.start)
-        .addTo(map);
+      startMarkerRef.current =
+        new mapboxgl.Marker(
+          createRoutePointElement(
+            "start",
+            selectedVehicle.type
+          )
+        )
+          .setLngLat(selectedVehicle.route.start)
+          .addTo(map);
     }
 
     if (selectedVehicle.route?.finish) {
-      finishMarkerRef.current = new mapboxgl.Marker(
-        createRoutePointElement("finish", selectedVehicle.type)
-      )
-        .setLngLat(selectedVehicle.route.finish)
-        .addTo(map);
+      finishMarkerRef.current =
+        new mapboxgl.Marker(
+          createRoutePointElement(
+            "finish",
+            selectedVehicle.type
+          )
+        )
+          .setLngLat(selectedVehicle.route.finish)
+          .addTo(map);
     }
 
     const shouldFocusSelectedVehicle =
-      focusedVehicleIdRef.current !== selectedVehicle.id;
+      focusedVehicleIdRef.current !==
+      selectedVehicle.id;
 
-    focusedVehicleIdRef.current = selectedVehicle.id;
+    focusedVehicleIdRef.current =
+      selectedVehicle.id;
 
     if (shouldFocusSelectedVehicle) {
       map.easeTo({
-        center: [selectedVehicle.telemetry.lng, selectedVehicle.telemetry.lat],
+        center: [
+          selectedVehicle.telemetry.lng,
+          selectedVehicle.telemetry.lat,
+        ],
         zoom: 13,
         duration: 700,
       });
@@ -294,7 +382,10 @@ export const TrackingMap = () => {
 
   return (
     <Card className={styles.map}>
-      <div ref={mapContainerRef} className={styles.mapContainer} />
+      <div
+        ref={mapContainerRef}
+        className={styles.mapContainer}
+      />
     </Card>
   );
 };

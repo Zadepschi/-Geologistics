@@ -5,11 +5,12 @@ import {
   Gauge,
   type LucideIcon,
 } from "lucide-react";
-import styles from "./KpiCards.module.scss";
+
 import { Card } from "@/shared/ui/card/Card";
 import { useFleetStore } from "@/shared/store/fleet";
-import { useLoadVehicles } from "@/features/fleet/model/useLoadVehicles";
 import { ordersMock } from "@/entities/order/model/mock";
+
+import styles from "./KpiCards.module.scss";
 
 type KpiTone = "green" | "purple" | "yellow" | "blue";
 
@@ -28,14 +29,17 @@ const toneIcons: Record<KpiTone, LucideIcon> = {
 };
 
 export const KpiCards = () => {
-  useLoadVehicles();
-
   const vehicles = useFleetStore((s) => s.vehicles);
 
   const totalOrders = ordersMock.length;
 
-  const isOrderCompleted = (orderVehicleId: string, orderStatus: string) => {
-    const vehicle = vehicles.find((vehicle) => vehicle.id === orderVehicleId);
+  const isOrderCompleted = (
+    orderVehicleId: string,
+    orderStatus: string
+  ) => {
+    const vehicle = vehicles.find(
+      (vehicle) => vehicle.id === orderVehicleId
+    );
 
     return (
       orderStatus === "completed" ||
@@ -52,7 +56,9 @@ export const KpiCards = () => {
   ).length;
 
   const performance =
-    totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0;
+    totalOrders > 0
+      ? Math.round((completedOrders / totalOrders) * 100)
+      : 0;
 
   const kpis: KpiItem[] = [
     {
@@ -91,17 +97,28 @@ export const KpiCards = () => {
             key={item.title}
             className={`${styles.card} ${styles[item.tone]}`}
           >
-            <div className={`${styles.iconWrap} ${styles[`${item.tone}Icon`]}`}>
+            <div
+              className={`${styles.iconWrap} ${
+                styles[`${item.tone}Icon`]
+              }`}
+            >
               <Icon size={18} />
             </div>
 
             <div className={styles.content}>
-              <div className={styles.title}>{item.title}</div>
+              <div className={styles.title}>
+                {item.title}
+              </div>
 
               <div className={styles.row}>
-                <div className={styles.value}>{item.value}</div>
+                <div className={styles.value}>
+                  {item.value}
+                </div>
+
                 {item.change ? (
-                  <div className={styles.change}>{item.change}</div>
+                  <div className={styles.change}>
+                    {item.change}
+                  </div>
                 ) : null}
               </div>
             </div>
