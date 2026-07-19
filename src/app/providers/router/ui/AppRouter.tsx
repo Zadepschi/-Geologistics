@@ -7,6 +7,7 @@ import { DispatchPage } from "@/pages/dispatch";
 import { FleetPage } from "@/pages/fleet";
 import { DriversPage } from "@/pages/drivers";
 import { ClientsPage } from "@/pages/clients";
+import { SettingsPage } from "@/pages/settings";
 
 import { routes } from "@/shared/config/routes";
 
@@ -23,6 +24,7 @@ export const AppRouter = () => {
         <Route path={routes.fleet} element={<FleetPage />} />
         <Route path={routes.drivers} element={<DriversPage />} />
         <Route path={routes.clients} element={<ClientsPage />} />
+        <Route path={routes.settings} element={<SettingsPage />} />
       </Route>
     </Routes>
   );

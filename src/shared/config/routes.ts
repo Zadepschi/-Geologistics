@@ -5,5 +5,6 @@ export const routes = {
   fleet: "/fleet",
   drivers: "/drivers",
   clients: "/clients",
+  settings: "/settings",
   orderDetails: "/orders/:orderId",
 } as const;
