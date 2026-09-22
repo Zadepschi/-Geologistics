@@ -1,0 +1,160 @@
+.card {
+  padding: 24px;
+  height: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+
+  margin-bottom: 22px;
+
+  h2 {
+    margin: 0 0 6px;
+
+    color: #f8fafc;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+
+    color: #94a3b8;
+    font-size: 14px;
+  }
+}
+
+.count {
+  padding: 7px 11px;
+
+  color: #94a3b8;
+  font-size: 13px;
+
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.08);
+  border-radius: 7px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.delivery {
+  display: grid;
+  grid-template-columns:
+    90px
+    minmax(120px, 1fr)
+    minmax(180px, 2fr)
+    minmax(100px, 1fr)
+    70px
+    100px;
+
+  align-items: center;
+  gap: 18px;
+
+  padding: 17px 0;
+
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+}
+
+.order,
+.info,
+.destination {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  min-width: 0;
+
+  strong {
+    overflow: hidden;
+
+    color: #f8fafc;
+    font-size: 14px;
+    font-weight: 600;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.label {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  color: #94a3b8;
+  font-size: 13px;
+
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.dot {
+  flex-shrink: 0;
+
+  width: 8px;
+  height: 8px;
+
+  background: #10b981;
+  border-radius: 50%;
+}
+
+.empty {
+  padding: 40px 20px;
+
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+}
+
+@media (max-width: 1200px) {
+  .delivery {
+    grid-template-columns:
+      80px
+      minmax(100px, 1fr)
+      minmax(150px, 2fr)
+      100px;
+
+    .info:nth-of-type(4) {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 18px;
+  }
+
+  .delivery {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .destination {
+    grid-column: 1 / -1;
+  }
+
+  .status {
+    justify-content: flex-end;
+  }
+}

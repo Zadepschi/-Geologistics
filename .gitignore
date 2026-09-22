@@ -1,2 +1,9 @@
 .env
 node_modules
+
+# Build output
+frontend/dist/
+backend/dist/
+
+# Vite cache
+frontend/.vite/

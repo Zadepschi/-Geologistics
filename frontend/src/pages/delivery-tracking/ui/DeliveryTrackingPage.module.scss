@@ -1,0 +1,106 @@
+.page {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 16px;
+
+  width: 100%;
+  height: calc(100vh - 100px);
+  min-height: 0;
+}
+
+.mapSection {
+  position: relative;
+
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+  min-height: 350px;
+
+  > * {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.vehiclesPanel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+
+  width: 300px;
+  max-height: calc(100% - 32px);
+
+  overflow-y: auto;
+}
+
+.filtersPanel {
+  position: absolute;
+  top: 16px;
+  right: 8px;
+  z-index: 10;
+
+  width: 180px;
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+}
+
+@media (max-width: 1200px) {
+  .vehiclesPanel {
+    width: 270px;
+  }
+
+  .filtersPanel {
+    width: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page {
+    display: flex;
+    flex-direction: column;
+
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .mapSection {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    overflow: visible;
+  }
+
+  .map {
+    order: 2;
+    height: 450px;
+    min-height: 450px;
+  }
+
+  .vehiclesPanel,
+  .filtersPanel {
+    position: static;
+
+    width: 100%;
+    max-height: none;
+
+    overflow: visible;
+  }
+
+  .vehiclesPanel {
+    order: 1;
+  }
+
+  .filtersPanel {
+    order: 3;
+  }
+}
