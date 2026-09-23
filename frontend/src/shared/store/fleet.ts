@@ -11,8 +11,14 @@ interface FleetStore {
   setVehicles: (vehicles: Vehicle[]) => void;
   setSelectedVehicleId: (id: string | null) => void;
 
-  setVehicleRoutePath: (id: string, path: LngLat[]) => void;
-  stepVehicleAlongRoute: (id: string) => void;
+  setVehicleRoutePath: (
+    id: string,
+    path: LngLat[]
+  ) => void;
+
+  stepVehicleAlongRoute: (
+    id: string
+  ) => void;
 }
 
 const getDefaultSpeed = (vehicle: Vehicle) => {
@@ -27,111 +33,131 @@ const getDefaultSpeed = (vehicle: Vehicle) => {
   return 28;
 };
 
-export const useFleetStore = create<FleetStore>((set) => ({
-  vehicles: [],
-  selectedVehicleId: null,
+export const useFleetStore = create<FleetStore>(
+  (set) => ({
+    vehicles: [],
+    selectedVehicleId: null,
 
-  setVehicles: (vehicles) => set({ vehicles }),
+    setVehicles: (vehicles) =>
+      set({ vehicles }),
 
-  setSelectedVehicleId: (id) =>
-    set({ selectedVehicleId: id }),
+    setSelectedVehicleId: (id) =>
+      set({
+        selectedVehicleId: id,
+      }),
 
-  setVehicleRoutePath: (id, path) =>
-    set((state) => ({
-      vehicles: state.vehicles.map((vehicle) => {
-        if (vehicle.id !== id || !vehicle.route) {
-          return vehicle;
-        }
+    setVehicleRoutePath: (id, path) =>
+      set((state) => ({
+        vehicles: state.vehicles.map(
+          (vehicle) => {
+            if (
+              vehicle.id !== id ||
+              path.length === 0
+            ) {
+              return vehicle;
+            }
 
-        return {
-          ...vehicle,
+            const start = path[0];
 
-          telemetry: path[0]
-            ? {
+            const finish =
+              path[path.length - 1];
+
+            return {
+              ...vehicle,
+
+              telemetry: {
                 ...vehicle.telemetry,
-                lng: path[0][0],
-                lat: path[0][1],
-                updatedAt: new Date().toISOString(),
-              }
-            : vehicle.telemetry,
+                lng: start[0],
+                lat: start[1],
+                updatedAt:
+                  new Date().toISOString(),
+              },
 
-          route: {
-            ...vehicle.route,
-            path,
-            completedPath:
-              path.length > 0 ? [path[0]] : [],
-            currentPathIndex: 0,
-            deliveryCompleted: false,
-          },
-        };
-      }),
-    })),
+              route: {
+                start,
+                finish,
+                path,
+                completedPath: [start],
+                currentPathIndex: 0,
+                deliveryCompleted: false,
+              },
+            };
+          }
+        ),
+      })),
 
-  stepVehicleAlongRoute: (id) =>
-    set((state) => ({
-      vehicles: state.vehicles.map((vehicle) => {
-        if (
-          vehicle.id !== id ||
-          vehicle.status !== "on-route" ||
-          !vehicle.route?.path?.length
-        ) {
-          return vehicle;
-        }
+    stepVehicleAlongRoute: (id) =>
+      set((state) => ({
+        vehicles: state.vehicles.map(
+          (vehicle) => {
+            if (
+              vehicle.id !== id ||
+              vehicle.status !== "on-route" ||
+              !vehicle.route?.path?.length
+            ) {
+              return vehicle;
+            }
 
-        const currentIndex =
-          vehicle.route.currentPathIndex ?? 0;
+            const currentIndex =
+              vehicle.route
+                .currentPathIndex ?? 0;
 
-        const nextIndex = Math.min(
-          currentIndex + 1,
-          vehicle.route.path.length - 1
-        );
+            const nextIndex = Math.min(
+              currentIndex + 1,
+              vehicle.route.path.length - 1
+            );
 
-        const nextPoint =
-          vehicle.route.path[nextIndex];
+            const nextPoint =
+              vehicle.route.path[nextIndex];
 
-        const completedPath =
-          vehicle.route.path.slice(
-            0,
-            nextIndex + 1
-          );
+            const completedPath =
+              vehicle.route.path.slice(
+                0,
+                nextIndex + 1
+              );
 
-        const deliveryCompleted =
-          nextIndex >=
-          vehicle.route.path.length - 1;
+            const deliveryCompleted =
+              nextIndex >=
+              vehicle.route.path.length - 1;
 
-        const currentSpeed =
-          vehicle.telemetry.speedKmH;
+            const currentSpeed =
+              vehicle.telemetry.speedKmH;
 
-        const speed =
-          typeof currentSpeed === "number" &&
-          currentSpeed > 0
-            ? currentSpeed
-            : getDefaultSpeed(vehicle);
+            const speed =
+              typeof currentSpeed === "number" &&
+              currentSpeed > 0
+                ? currentSpeed
+                : getDefaultSpeed(vehicle);
 
-        return {
-          ...vehicle,
+            return {
+              ...vehicle,
 
-          status: deliveryCompleted
-            ? "idle"
-            : vehicle.status,
+              status: deliveryCompleted
+                ? "idle"
+                : vehicle.status,
 
-          telemetry: {
-            ...vehicle.telemetry,
-            lng: nextPoint[0],
-            lat: nextPoint[1],
-            speedKmH: deliveryCompleted
-              ? 0
-              : speed,
-            updatedAt: new Date().toISOString(),
-          },
+              telemetry: {
+                ...vehicle.telemetry,
+                lng: nextPoint[0],
+                lat: nextPoint[1],
+                speedKmH:
+                  deliveryCompleted
+                    ? 0
+                    : speed,
+                updatedAt:
+                  new Date().toISOString(),
+              },
 
-          route: {
-            ...vehicle.route,
-            currentPathIndex: nextIndex,
-            completedPath,
-            deliveryCompleted,
-          },
-        };
-      }),
-    })),
-}));
+              route: {
+                ...vehicle.route,
+                currentPathIndex:
+                  nextIndex,
+                completedPath,
+                deliveryCompleted,
+              },
+            };
+          }
+        ),
+      })),
+  })
+);

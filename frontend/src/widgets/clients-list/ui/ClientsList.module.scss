@@ -83,3 +83,58 @@
     font-size: 14px;
   }
 }
+
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+
+  margin-top: 16px;
+  padding-top: 14px;
+
+  border-top: 1px solid #1e2b3d;
+
+  button {
+    height: 34px;
+
+    padding: 0 12px;
+
+    border-radius: 6px;
+
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+
+    cursor: pointer;
+
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease,
+      color 0.2s ease;
+  }
+}
+
+.editButton {
+  border: 1px solid #29384c;
+  background: transparent;
+  color: #aab5c4;
+
+  &:hover {
+    border-color: #3a4b61;
+    background: #111c2b;
+    color: #e1e7ee;
+  }
+}
+
+.deleteButton {
+  border: 1px solid rgba(220, 80, 80, 0.35);
+  background: rgba(220, 80, 80, 0.08);
+  color: #d98b8b;
+
+  &:hover {
+    border-color: rgba(220, 80, 80, 0.55);
+    background: rgba(220, 80, 80, 0.14);
+    color: #efaaaa;
+  }
+}

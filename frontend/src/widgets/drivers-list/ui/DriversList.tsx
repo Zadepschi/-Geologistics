@@ -38,6 +38,7 @@ const getRouteStatus = (
 export const DriversList = () => {
   const vehicles = useFleetStore((s) => s.vehicles);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetchDrivers()
@@ -47,6 +48,19 @@ export const DriversList = () => {
       });
   }, []);
 
+  const filteredDrivers = drivers.filter((driver) => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) {
+      return true;
+    }
+
+    return (
+      driver.name.toLowerCase().includes(query) ||
+      driver.phone.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <Card className={styles.card}>
       <div className={styles.header}>
@@ -54,16 +68,29 @@ export const DriversList = () => {
         <span>{drivers.length}</span>
       </div>
 
+      <div className={styles.search}>
+        <input
+          type="search"
+          value={search}
+          onChange={(event) =>
+            setSearch(event.target.value)
+          }
+          placeholder="Search by name or phone..."
+          aria-label="Search drivers"
+        />
+      </div>
+
       <div className={styles.list}>
-        {drivers.map((driver) => {
+        {filteredDrivers.map((driver) => {
           const assignedVehicle = vehicles.find(
             (vehicle) => vehicle.id === driver.vehicleId
           );
 
-          const displayedDriverStatus = getDriverStatus(
-            driver,
-            assignedVehicle?.status
-          );
+          const displayedDriverStatus =
+            getDriverStatus(
+              driver,
+              assignedVehicle?.status
+            );
 
           const routeStatus = getRouteStatus(
             assignedVehicle?.route?.deliveryCompleted,
@@ -90,7 +117,8 @@ export const DriversList = () => {
                 <div>
                   <span>Vehicle</span>
                   <strong>
-                    {assignedVehicle?.name ?? "Not assigned"}
+                    {assignedVehicle?.name ??
+                      "Not assigned"}
                   </strong>
                 </div>
 
@@ -104,7 +132,9 @@ export const DriversList = () => {
                 <div>
                   <span>Speed</span>
                   <strong>
-                    {assignedVehicle?.telemetry.speedKmH ?? 0} km/h
+                    {assignedVehicle?.telemetry.speedKmH ??
+                      0}{" "}
+                    km/h
                   </strong>
                 </div>
 
@@ -116,6 +146,12 @@ export const DriversList = () => {
             </div>
           );
         })}
+
+        {filteredDrivers.length === 0 && (
+          <div className={styles.empty}>
+            No drivers found.
+          </div>
+        )}
       </div>
     </Card>
   );
