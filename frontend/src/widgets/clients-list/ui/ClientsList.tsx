@@ -2,7 +2,7 @@ import { Card } from "@/shared/ui/card/Card";
 import { useEffect, useState } from "react";
 import type { Client } from "@/entities/client";
 import {
-  deleteClient,
+  archiveClient,
   fetchClients,
 } from "@/shared/api/clients";
 import type { Order } from "@/entities/order";
@@ -14,20 +14,40 @@ interface ClientsListProps {
   onEdit: (client: Client) => void;
 }
 
+type ClientView = "active" | "archived";
+
 export const ClientsList = ({
   onEdit,
 }: ClientsListProps) => {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [clientToDelete, setClientToDelete] =
+  const [clients, setClients] =
+    useState<Client[]>([]);
+
+  const [orders, setOrders] =
+    useState<Order[]>([]);
+
+  const [search, setSearch] =
+    useState("");
+
+  const [view, setView] =
+    useState<ClientView>("active");
+
+  const [clientToArchive, setClientToArchive] =
     useState<Client | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [isArchiving, setIsArchiving] =
+    useState(false);
+
+  const [archiveError, setArchiveError] =
+    useState("");
 
   useEffect(() => {
     fetchClients()
       .then(setClients)
       .catch((error) => {
-        console.error("Failed to load clients", error);
+        console.error(
+          "Failed to load clients",
+          error
+        );
       });
   }, []);
 
@@ -35,7 +55,10 @@ export const ClientsList = ({
     fetchOrders()
       .then(setOrders)
       .catch((error) => {
-        console.error("Failed to load orders", error);
+        console.error(
+          "Failed to load orders",
+          error
+        );
       });
   }, []);
 
@@ -44,7 +67,10 @@ export const ClientsList = ({
       fetchClients()
         .then(setClients)
         .catch((error) => {
-          console.error("Failed to reload clients", error);
+          console.error(
+            "Failed to reload clients",
+            error
+          );
         });
     };
 
@@ -61,32 +87,94 @@ export const ClientsList = ({
     };
   }, []);
 
-  const handleDelete = async () => {
-    if (!clientToDelete) {
+  const normalizedSearch =
+    search.trim().toLowerCase();
+
+  const filteredClients =
+    clients.filter((client) => {
+      if (
+        view === "active" &&
+        client.isArchived
+      ) {
+        return false;
+      }
+
+      if (
+        view === "archived" &&
+        !client.isArchived
+      ) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      return [
+        client.name,
+        client.email,
+        client.phone,
+        client.address,
+      ].some((value) =>
+        value
+          .toLowerCase()
+          .includes(normalizedSearch)
+      );
+    });
+
+  const activeCount = clients.filter(
+    (client) => !client.isArchived
+  ).length;
+
+  const archivedCount = clients.filter(
+    (client) => client.isArchived
+  ).length;
+
+  const handleArchive = async () => {
+    if (!clientToArchive) {
       return;
     }
 
-    setIsDeleting(true);
+    setIsArchiving(true);
+    setArchiveError("");
 
     try {
-      await deleteClient(clientToDelete.id);
+      const updatedClient =
+        await archiveClient(
+          clientToArchive.id,
+          !clientToArchive.isArchived
+        );
 
       setClients((current) =>
-        current.filter(
-          (item) => item.id !== clientToDelete.id
+        current.map((client) =>
+          client.id === updatedClient.id
+            ? updatedClient
+            : client
         )
       );
 
-      setClientToDelete(null);
+      setClientToArchive(null);
     } catch (error) {
-      console.error("Failed to delete client", error);
+      console.error(
+        "Failed to archive client",
+        error
+      );
 
-      window.alert(
-        "This client cannot be deleted because it is used by existing orders."
+      setArchiveError(
+        clientToArchive.isArchived
+          ? "Failed to restore this client."
+          : "Failed to archive this client."
       );
     } finally {
-      setIsDeleting(false);
+      setIsArchiving(false);
     }
+  };
+
+  const handleArchiveClick = (
+    client: Client
+  ) => {
+    setArchiveError("");
+    setClientToArchive(client);
   };
 
   return (
@@ -94,16 +182,63 @@ export const ClientsList = ({
       <Card className={styles.card}>
         <div className={styles.header}>
           <h2>Clients</h2>
-          <span>{clients.length}</span>
+
+          <div className={styles.tabs}>
+            <button
+              type="button"
+              onClick={() =>
+                setView("active")
+              }
+              className={
+                view === "active"
+                  ? styles.tabActive
+                  : styles.tab
+              }
+            >
+              Active
+              <span>{activeCount}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setView("archived")
+              }
+              className={
+                view === "archived"
+                  ? styles.tabActive
+                  : styles.tab
+              }
+            >
+              Archived
+              <span>{archivedCount}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.search}>
+          <input
+            type="search"
+            value={search}
+            onChange={(event) =>
+              setSearch(event.target.value)
+            }
+            placeholder="Search by name, email, phone or address..."
+            aria-label="Search clients"
+          />
         </div>
 
         <div className={styles.list}>
-          {clients.map((client) => {
-            const clientOrders = orders.filter(
-              (order) => order.clientId === client.id
-            );
+          {filteredClients.map((client) => {
+            const clientOrders =
+              orders.filter(
+                (order) =>
+                  order.clientId ===
+                  client.id
+              );
 
-            const lastOrder = clientOrders.at(-1);
+            const lastOrder =
+              clientOrders.at(-1);
 
             return (
               <div
@@ -113,75 +248,125 @@ export const ClientsList = ({
                 <div className={styles.main}>
                   <div>
                     <h3>{client.name}</h3>
+
                     <p>{client.email}</p>
                   </div>
 
-                  <span className={styles.ordersCount}>
-                    {clientOrders.length} orders
+                  <span
+                    className={
+                      styles.ordersCount
+                    }
+                  >
+                    {clientOrders.length}{" "}
+                    orders
                   </span>
                 </div>
 
                 <div className={styles.info}>
                   <div>
                     <span>Phone</span>
-                    <strong>{client.phone}</strong>
+
+                    <strong>
+                      {client.phone}
+                    </strong>
                   </div>
 
                   <div>
                     <span>Address</span>
-                    <strong>{client.address}</strong>
+
+                    <strong>
+                      {client.address}
+                    </strong>
                   </div>
 
                   <div>
                     <span>Last order</span>
+
                     <strong>
-                      {lastOrder?.id ?? "No orders"}
+                      {lastOrder?.id ??
+                        "No orders"}
                     </strong>
                   </div>
 
                   <div>
                     <span>Status</span>
+
                     <strong>
                       {lastOrder?.status ?? "—"}
                     </strong>
                   </div>
                 </div>
 
-                <div className={styles.actions}>
-                  <button
-                    type="button"
-                    className={styles.editButton}
-                    onClick={() => onEdit(client)}
-                  >
-                    Edit
-                  </button>
+                <div
+                  className={styles.actions}
+                >
+                  {view === "active" && (
+                    <button
+                      type="button"
+                      className={
+                        styles.editButton
+                      }
+                      onClick={() =>
+                        onEdit(client)
+                      }
+                    >
+                      Edit
+                    </button>
+                  )}
 
                   <button
                     type="button"
-                    className={styles.deleteButton}
+                    className={
+                      styles.deleteButton
+                    }
                     onClick={() =>
-                      setClientToDelete(client)
+                      handleArchiveClick(client)
                     }
                   >
-                    Delete
+                    {client.isArchived
+                      ? "Restore"
+                      : "Archive"}
                   </button>
                 </div>
+
+                {client.isArchived && (
+                  <div>
+                    Archived
+                  </div>
+                )}
               </div>
             );
           })}
+
+          {filteredClients.length === 0 && (
+            <div className={styles.empty}>
+              {view === "archived"
+                ? "No archived clients."
+                : normalizedSearch
+                  ? "No clients found."
+                  : "No active clients available."}
+            </div>
+          )}
         </div>
       </Card>
 
       <ClientDeleteModal
-        clientName={clientToDelete?.name ?? null}
-        open={clientToDelete !== null}
-        loading={isDeleting}
+        clientName={
+          clientToArchive?.name ?? null
+        }
+        isArchived={
+          clientToArchive?.isArchived ?? false
+        }
+        open={clientToArchive !== null}
+        loading={isArchiving}
+        error={archiveError}
         onClose={() => {
-          if (!isDeleting) {
-            setClientToDelete(null);
+          if (!isArchiving) {
+            setClientToArchive(null);
+            setArchiveError("");
           }
         }}
-        onConfirm={handleDelete}
+        onConfirm={handleArchive}
       />
     </>
   );

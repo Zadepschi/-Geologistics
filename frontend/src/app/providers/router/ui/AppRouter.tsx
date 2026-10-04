@@ -1,6 +1,5 @@
 import { Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/app/layouts/AppLayout";
-
 import { DashboardPage } from "@/pages/dashboard";
 import { DeliveryTrackingPage } from "@/pages/delivery-tracking";
 import { DispatchPage } from "@/pages/dispatch";

@@ -43,15 +43,31 @@ const getCurrentSpeed = (vehicle: Vehicle) => {
 };
 
 const getEta = (vehicle: Vehicle) => {
-  if (vehicle.status === "idle") {
+  if (
+    vehicle.status === "idle" ||
+    vehicle.route?.deliveryCompleted
+  ) {
     return "Completed";
   }
 
   const eta = vehicle.route?.etaMinutes;
 
-  return typeof eta === "number"
-    ? `${eta} min`
-    : "—";
+  if (typeof eta !== "number") {
+    return "—";
+  }
+
+  const hours = Math.floor(eta / 60);
+  const minutes = eta % 60;
+
+  if (hours === 0) {
+    return `${minutes} min`;
+  }
+
+  if (minutes === 0) {
+    return `${hours} h`;
+  }
+
+  return `${hours} h ${minutes} min`;
 };
 
 const getProgressValue = (vehicle: Vehicle) => {

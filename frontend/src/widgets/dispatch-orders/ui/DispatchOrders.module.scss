@@ -13,12 +13,82 @@
     color: #f8fafc;
     font-size: 22px;
   }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid #1e2b3d;
+  border-radius: 8px;
+  background: #0f172a;
+}
+
+.tab,
+.tabActive {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    font-size: 11px;
+  }
+}
+
+.tab {
+  background: transparent;
+  color: #8997aa;
 
   span {
     background: #1e293b;
-    color: #f8fafc;
-    padding: 6px 12px;
-    border-radius: 999px;
+    color: #94a3b8;
+  }
+
+  &:hover {
+    background: #111c2b;
+    color: #dce4ee;
+  }
+}
+
+.tabActive {
+  border-color: rgba(0, 200, 170, 0.45);
+  background: rgba(0, 200, 170, 0.12);
+  color: #eafffb;
+
+  span {
+    background: rgba(0, 200, 170, 0.18);
+    color: #7de7d8;
+  }
+
+  &:hover {
+    border-color: rgba(0, 200, 170, 0.6);
+    background: rgba(0, 200, 170, 0.16);
   }
 }
 
@@ -55,11 +125,11 @@
 }
 
 .status {
-  color: #34d399;
-  font-size: 13px;
-  background: rgba(16, 185, 129, 0.12);
   padding: 6px 10px;
   border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  font-size: 13px;
 }
 
 .info {
@@ -85,21 +155,48 @@
   }
 }
 
+.actionError {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(220, 80, 80, 0.3);
+  border-radius: 8px;
+  background: rgba(220, 80, 80, 0.08);
+  color: #d98b8b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .actions {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 
   button {
+    padding: 10px 14px;
     border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 10px;
     background: #0f172a;
     color: #f8fafc;
-    border-radius: 10px;
-    padding: 10px 14px;
     cursor: pointer;
 
     &:hover {
       border-color: #00c2a8;
     }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  border: 1px dashed #29384c;
+  border-radius: 10px;
+  color: #64748b;
+  font-size: 14px;
 }

@@ -1,8 +1,10 @@
 import { useState } from "react";
+import type { Driver } from "@/entities/driver";
 import { DriversList } from "@/widgets/drivers-list";
 import { useLoadVehicles } from "@/features/fleet/model/useLoadVehicles";
 import { useFleetStore } from "@/shared/store/fleet";
 import { DriverCreateModal } from "./DriverCreateModal";
+import { DriverEditModal } from "./DriverEditModal";
 
 import styles from "./DriversPage.module.scss";
 
@@ -16,7 +18,14 @@ export const DriversPage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] =
     useState(false);
 
+  const [selectedDriver, setSelectedDriver] =
+    useState<Driver | null>(null);
+
   const handleDriverCreated = () => {
+    window.location.reload();
+  };
+
+  const handleDriverUpdated = () => {
     window.location.reload();
   };
 
@@ -31,19 +40,35 @@ export const DriversPage = () => {
         <button
           type="button"
           className={styles.addButton}
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={() =>
+            setIsCreateModalOpen(true)
+          }
         >
           + Add driver
         </button>
       </div>
 
-      <DriversList />
+      <div className={styles.content}>
+        <DriversList
+          onEdit={setSelectedDriver}
+        />
+      </div>
 
       <DriverCreateModal
         open={isCreateModalOpen}
         vehicles={vehicles}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() =>
+          setIsCreateModalOpen(false)
+        }
         onCreated={handleDriverCreated}
+      />
+
+      <DriverEditModal
+        driver={selectedDriver}
+        onClose={() =>
+          setSelectedDriver(null)
+        }
+        onUpdated={handleDriverUpdated}
       />
     </div>
   );

@@ -19,7 +19,11 @@ export const ClientEditModal = ({
     name: "",
     phone: "",
     email: "",
-    address: "",
+    street: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "United States",
   });
 
   useEffect(() => {
@@ -27,11 +31,21 @@ export const ClientEditModal = ({
       return;
     }
 
+    const addressParts = client.address
+      .split(",")
+      .map((part) => part.trim());
+
     setForm({
       name: client.name,
       phone: client.phone,
       email: client.email,
-      address: client.address,
+      street: addressParts[0] ?? "",
+      city: addressParts[1] ?? "",
+      state: addressParts[2] ?? "",
+      zipCode: addressParts[3] ?? "",
+      country:
+        addressParts.slice(4).join(", ") ||
+        "United States",
     });
   }, [client]);
 
@@ -55,13 +69,31 @@ export const ClientEditModal = ({
   ) => {
     event.preventDefault();
 
+    const address = [
+      form.street,
+      form.city,
+      form.state,
+      form.zipCode,
+      form.country,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
     try {
-      await updateClient(client.id, form);
+      await updateClient(client.id, {
+        name: form.name,
+        phone: form.phone,
+        email: form.email,
+        address,
+      });
 
       onUpdated();
       onClose();
     } catch (error) {
-      console.error("Failed to update client", error);
+      console.error(
+        "Failed to update client",
+        error
+      );
     }
   };
 
@@ -77,6 +109,7 @@ export const ClientEditModal = ({
       >
         <label className={styles.field}>
           <span>Name</span>
+
           <input
             name="name"
             type="text"
@@ -89,6 +122,7 @@ export const ClientEditModal = ({
 
         <label className={styles.field}>
           <span>Phone</span>
+
           <input
             name="phone"
             type="tel"
@@ -101,6 +135,7 @@ export const ClientEditModal = ({
 
         <label className={styles.field}>
           <span>Email</span>
+
           <input
             name="email"
             type="email"
@@ -112,13 +147,66 @@ export const ClientEditModal = ({
         </label>
 
         <label className={styles.field}>
-          <span>Address</span>
+          <span>Street address</span>
+
           <input
-            name="address"
+            name="street"
             type="text"
-            value={form.address}
+            value={form.street}
             onChange={handleChange}
-            placeholder="Client address"
+            placeholder="1600 Pennsylvania Ave NW"
+            required
+          />
+        </label>
+
+        <label className={styles.field}>
+          <span>City</span>
+
+          <input
+            name="city"
+            type="text"
+            value={form.city}
+            onChange={handleChange}
+            placeholder="Washington"
+            required
+          />
+        </label>
+
+        <label className={styles.field}>
+          <span>State</span>
+
+          <input
+            name="state"
+            type="text"
+            value={form.state}
+            onChange={handleChange}
+            placeholder="DC"
+            required
+          />
+        </label>
+
+        <label className={styles.field}>
+          <span>ZIP code</span>
+
+          <input
+            name="zipCode"
+            type="text"
+            value={form.zipCode}
+            onChange={handleChange}
+            placeholder="20500"
+            required
+          />
+        </label>
+
+        <label className={styles.field}>
+          <span>Country</span>
+
+          <input
+            name="country"
+            type="text"
+            value={form.country}
+            onChange={handleChange}
+            placeholder="United States"
             required
           />
         </label>

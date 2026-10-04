@@ -6,7 +6,7 @@ export type VehicleStatus =
 
 export type VehicleType = "truck" | "van" | "bike";
 
-export type LngLat = [number, number]; // [lng, lat]
+export type LngLat = [number, number];
 
 export interface VehicleRoute {
   start: LngLat;
@@ -24,6 +24,7 @@ export interface Vehicle {
   name: string;
   type: VehicleType;
   status: VehicleStatus;
+  isArchived: boolean;
   telemetry: {
     lat: number;
     lng: number;

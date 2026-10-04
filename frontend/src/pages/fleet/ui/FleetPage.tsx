@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { FleetStats } from "@/widgets/fleet-stats";
 import { VehicleList } from "@/widgets/vehicle-list";
 import { VehicleDetails } from "@/widgets/vehicle-details";
 import { useLoadVehicles } from "@/features/fleet/model/useLoadVehicles";
@@ -34,8 +33,6 @@ export const FleetPage = () => {
           + Add vehicle
         </button>
       </div>
-
-      <FleetStats />
 
       <div className={styles.contentGrid}>
         <VehicleList />

@@ -1,8 +1,8 @@
 import { Modal } from "@/shared/ui/modal/Modal";
-import styles from "./ClientDeleteModal.module.scss";
+import styles from "./DriverDeleteModal.module.scss";
 
-interface ClientDeleteModalProps {
-  clientName: string | null;
+interface DriverDeleteModalProps {
+  driverName: string | null;
   isArchived?: boolean;
   open: boolean;
   loading?: boolean;
@@ -11,25 +11,31 @@ interface ClientDeleteModalProps {
   onConfirm: () => void;
 }
 
-export const ClientDeleteModal = ({
-  clientName,
+export const DriverDeleteModal = ({
+  driverName,
   isArchived = false,
   open,
   loading = false,
   error,
   onClose,
   onConfirm,
-}: ClientDeleteModalProps) => {
-  if (!open || !clientName) {
+}: DriverDeleteModalProps) => {
+  if (!open || !driverName) {
     return null;
   }
 
-  const action = isArchived ? "restore" : "archive";
+  const action = isArchived
+    ? "restore"
+    : "archive";
 
   return (
     <Modal
       open={open}
-      title={isArchived ? "Restore client?" : "Archive client?"}
+      title={
+        isArchived
+          ? "Restore driver?"
+          : "Archive driver?"
+      }
       onClose={onClose}
       maxWidth={420}
     >
@@ -37,15 +43,16 @@ export const ClientDeleteModal = ({
         <div className={styles.icon}>!</div>
 
         <p>
-          Are you sure you want to {action}{" "}
-          <strong>{clientName}</strong>?
+          Are you sure you want to{" "}
+          {action}{" "}
+          <strong>{driverName}</strong>?
         </p>
 
         {!error && (
           <span className={styles.warning}>
             {isArchived
-              ? "This client will become active again."
-              : "The client will be kept in history and can be restored later."}
+              ? "This driver will become available again."
+              : "The driver will be kept in history and can be restored later."}
           </span>
         )}
 
@@ -75,8 +82,8 @@ export const ClientDeleteModal = ({
           {loading
             ? "Saving..."
             : isArchived
-              ? "Restore client"
-              : "Archive client"}
+              ? "Restore driver"
+              : "Archive driver"}
         </button>
       </div>
     </Modal>

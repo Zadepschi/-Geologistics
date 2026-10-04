@@ -2,17 +2,23 @@ import type { LngLat } from "@/entities/vehicle/model/types";
 
 interface MapboxDirectionsResponse {
   routes?: Array<{
+    duration?: number;
     geometry?: {
       coordinates?: LngLat[];
     };
   }>;
 }
 
-export async function fetchStreetRoute(
+export interface StreetRoute {
+  path: LngLat[];
+  durationMinutes: number;
+}
+
+const fetchMapboxRoute = async (
   start: LngLat,
   finish: LngLat,
   token: string
-): Promise<LngLat[]> {
+): Promise<StreetRoute> => {
   if (!token) {
     throw new Error("Mapbox token is missing");
   }
@@ -29,13 +35,46 @@ export async function fetchStreetRoute(
     throw new Error(`Mapbox route error: ${res.status}`);
   }
 
-  const data: MapboxDirectionsResponse = await res.json();
+  const data: MapboxDirectionsResponse =
+    await res.json();
 
-  const route = data.routes?.[0]?.geometry?.coordinates;
+  const route = data.routes?.[0];
 
-  if (!route || route.length < 2) {
+  const path = route?.geometry?.coordinates;
+  const duration = route?.duration;
+
+  if (!path || path.length < 2) {
     throw new Error("Mapbox route geometry is empty");
   }
 
-  return route;
+  if (typeof duration !== "number") {
+    throw new Error("Mapbox route duration is missing");
+  }
+
+  return {
+    path,
+    durationMinutes: Math.ceil(duration / 60),
+  };
+};
+
+export async function fetchStreetRoute(
+  start: LngLat,
+  finish: LngLat,
+  token: string
+): Promise<LngLat[]> {
+  const route = await fetchMapboxRoute(
+    start,
+    finish,
+    token
+  );
+
+  return route.path;
+}
+
+export async function fetchStreetRouteWithDuration(
+  start: LngLat,
+  finish: LngLat,
+  token: string
+): Promise<StreetRoute> {
+  return fetchMapboxRoute(start, finish, token);
 }

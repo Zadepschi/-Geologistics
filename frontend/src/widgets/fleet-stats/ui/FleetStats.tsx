@@ -10,16 +10,19 @@ export const FleetStats = () => {
       label: "Total",
       value: vehicles.length,
     },
-    {
-      label: "On route",
-      value: vehicles.filter(
-        (vehicle) => vehicle.status === "on-route"
-      ).length,
-    },
+{
+  label: "On route",
+  value: vehicles.filter(
+    (vehicle) =>
+      vehicle.status === "on-route"
+  ).length,
+},
     {
       label: "Idle",
       value: vehicles.filter(
-        (vehicle) => vehicle.status === "idle"
+        (vehicle) =>
+          vehicle.status === "idle" ||
+          vehicle.route?.deliveryCompleted
       ).length,
     },
     {
@@ -44,7 +47,9 @@ export const FleetStats = () => {
           <p>Current status of your New York delivery fleet</p>
         </div>
 
-        <span className={styles.total}>{vehicles.length} vehicles</span>
+        <span className={styles.total}>
+          {vehicles.length} vehicles
+        </span>
       </div>
 
       <div className={styles.stats}>

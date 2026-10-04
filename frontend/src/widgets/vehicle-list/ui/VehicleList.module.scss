@@ -1,56 +1,108 @@
 .listCard {
-  padding: 18px;
-
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   min-height: 0;
+  box-sizing: border-box;
+  padding: 18px;
 }
 
 .listHeader {
   display: flex;
-
   align-items: center;
   justify-content: space-between;
-
+  flex-shrink: 0;
   margin-bottom: 12px;
 
   h2 {
     margin: 0;
-
     color: #f8fafc;
     font-size: 20px;
   }
 
   span {
     padding: 6px 12px;
-
     border-radius: 999px;
-
     background: #1e293b;
     color: #f8fafc;
   }
 }
 
+
+.filters {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.filterButton,
+.filterButtonActive {
+  height: 32px;
+  padding: 0 11px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    font-size: 11px;
+    line-height: 1;
+  }
+}
+
+.filterButton {
+  border: 1px solid #29384c;
+  background: transparent;
+  color: #8997aa;
+
+  &:hover {
+    border-color: #3a4b61;
+    background: #111c2b;
+    color: #dce4ee;
+  }
+}
+
+.filterButtonActive {
+  border: 1px solid rgba(0, 200, 170, 0.55);
+  background: rgba(0, 200, 170, 0.12);
+  color: #eafffb;
+
+  &:hover {
+    border-color: rgba(0, 200, 170, 0.7);
+    background: rgba(0, 200, 170, 0.18);
+  }
+}
+
 .search {
+  flex-shrink: 0;
   margin-bottom: 14px;
 
   input {
     width: 100%;
     height: 38px;
-
     box-sizing: border-box;
-
     padding: 0 12px;
-
     border: 1px solid #29384c;
     border-radius: 7px;
-
     outline: none;
-
     background: #0f1b2b;
     color: #f4f7fb;
-
     font: inherit;
     font-size: 13px;
-
     transition:
       border-color 0.2s ease,
       background 0.2s ease;
@@ -68,14 +120,11 @@
 
 .list {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 10px;
-
   min-height: 0;
-  max-height: 360px;
-
   overflow-y: auto;
-
   padding-right: 6px;
 
   scrollbar-width: thin;
@@ -101,11 +150,8 @@
 
 .vehicleItem {
   display: flex;
-
   align-items: center;
-
   gap: 8px;
-
   width: 100%;
 }
 
@@ -116,23 +162,16 @@
 
 .editButton {
   flex-shrink: 0;
-
   height: 34px;
-
   padding: 0 12px;
-
   border: 1px solid #29384c;
   border-radius: 6px;
-
   background: transparent;
   color: #aab5c4;
-
   font: inherit;
   font-size: 13px;
   font-weight: 500;
-
   cursor: pointer;
-
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
@@ -141,30 +180,22 @@
 
 .editButton:hover {
   border-color: #3a4b61;
-
   background: #111c2b;
   color: #e1e7ee;
 }
 
 .deleteButton {
   flex-shrink: 0;
-
   height: 34px;
-
   padding: 0 12px;
-
   border: 1px solid rgba(220, 80, 80, 0.35);
   border-radius: 6px;
-
   background: rgba(220, 80, 80, 0.08);
   color: #d98b8b;
-
   font: inherit;
   font-size: 13px;
   font-weight: 500;
-
   cursor: pointer;
-
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
@@ -173,22 +204,17 @@
 
 .deleteButton:hover {
   border-color: rgba(220, 80, 80, 0.55);
-
   background: rgba(220, 80, 80, 0.14);
   color: #efaaaa;
 }
 
 .empty {
   display: flex;
-
   align-items: center;
   justify-content: center;
-
   min-height: 100px;
-
   border: 1px dashed #29384c;
   border-radius: 8px;
-
   color: #718096;
   font-size: 13px;
 }

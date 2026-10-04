@@ -1,50 +1,42 @@
 .page {
   display: flex;
-
   flex-direction: column;
-
+  width: 100%;
+  height: calc(100vh - var(--header-h));
+  min-height: 0;
   gap: 20px;
+  overflow: hidden;
 }
 
 .header {
   display: flex;
-
   align-items: center;
   justify-content: space-between;
-
+  flex-shrink: 0;
   gap: 24px;
 }
 
 .title {
   margin: 0;
-
   font-size: 24px;
-
   color: #f8fafc;
 }
 
 .subtitle {
   margin: 6px 0 0;
-
   color: #94a3b8;
 }
 
 .addButton {
   flex-shrink: 0;
-
   padding: 10px 16px;
-
   border: 1px solid rgba(0, 200, 170, 0.45);
   border-radius: 8px;
-
   background: rgba(0, 200, 170, 0.12);
   color: #ffffff;
-
   font-size: 14px;
   font-weight: 600;
-
   cursor: pointer;
-
   transition:
     background 0.2s ease,
     border-color 0.2s ease;
@@ -52,7 +44,6 @@
 
 .addButton:hover {
   background: rgba(0, 200, 170, 0.2);
-
   border-color: rgba(0, 200, 170, 0.7);
 }
 
@@ -62,8 +53,8 @@
 
 .contentGrid {
   display: grid;
-
   grid-template-columns: 1.4fr 1fr;
-
+  flex: 1;
+  min-height: 0;
   gap: 20px;
 }

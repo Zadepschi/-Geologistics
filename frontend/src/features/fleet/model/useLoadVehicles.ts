@@ -8,23 +8,17 @@ import { geocodeAddress } from "@/shared/api/geocodeAddress";
 const MAPBOX_TOKEN =
   import.meta.env.VITE_MAPBOX_TOKEN;
 
-const STEP_INTERVAL = 1000;
-
 export const useLoadVehicles = () => {
   const setVehicles = useFleetStore(
-    (s) => s.setVehicles
+    (state) => state.setVehicles
   );
 
   const setVehicleRoutePath = useFleetStore(
-    (s) => s.setVehicleRoutePath
+    (state) => state.setVehicleRoutePath
   );
 
   const setSelectedVehicleId = useFleetStore(
-    (s) => s.setSelectedVehicleId
-  );
-
-  const stepVehicleAlongRoute = useFleetStore(
-    (s) => s.stepVehicleAlongRoute
+    (state) => state.setSelectedVehicleId
   );
 
   useEffect(() => {
@@ -32,14 +26,7 @@ export const useLoadVehicles = () => {
 
     const loadVehicles = async () => {
       try {
-        const existingVehicles =
-          useFleetStore.getState().vehicles;
-
-        if (existingVehicles.length > 0) {
-          return;
-        }
-
-        const [vehicles, orders] =
+        const [loadedVehicles, orders] =
           await Promise.all([
             fetchVehicles(),
             fetchOrders(),
@@ -49,7 +36,50 @@ export const useLoadVehicles = () => {
           return;
         }
 
-        setVehicles(vehicles);
+        const currentVehicles =
+          useFleetStore.getState().vehicles;
+
+        /*
+         * Синхронизируем список машин с backend.
+         *
+         * Новые машины добавляются.
+         * Удалённые на backend исчезают из store.
+         *
+         * Для уже существующих машин сохраняем
+         * runtime-состояние:
+         * - telemetry
+         * - route
+         *
+         * Это важно для live tracking.
+         */
+        const mergedVehicles =
+          loadedVehicles.map(
+            (loadedVehicle) => {
+              const currentVehicle =
+                currentVehicles.find(
+                  (vehicle) =>
+                    vehicle.id ===
+                    loadedVehicle.id
+                );
+
+              if (!currentVehicle) {
+                return loadedVehicle;
+              }
+
+              return {
+                ...loadedVehicle,
+                telemetry:
+                  currentVehicle.telemetry,
+                route:
+                  currentVehicle.route,
+              };
+            }
+          );
+
+        setVehicles(mergedVehicles);
+
+        const vehicles =
+          useFleetStore.getState().vehicles;
 
         const routeRequests = vehicles
           .filter(
@@ -57,7 +87,8 @@ export const useLoadVehicles = () => {
               typeof vehicle.telemetry.lat ===
                 "number" &&
               typeof vehicle.telemetry.lng ===
-                "number"
+                "number" &&
+              !vehicle.route?.path?.length
           )
           .map(async (vehicle) => {
             try {
@@ -69,6 +100,11 @@ export const useLoadVehicles = () => {
                 );
 
               const activeOrder =
+                vehicleOrders.find(
+                  (order) =>
+                    order.status ===
+                    "assigned"
+                ) ??
                 vehicleOrders.find(
                   (order) =>
                     order.status ===
@@ -93,6 +129,29 @@ export const useLoadVehicles = () => {
                 return;
               }
 
+              /*
+               * Проверяем store ещё раз после
+               * асинхронного geocoding.
+               *
+               * Возможно, за это время машина
+               * уже получила маршрут другим
+               * способом.
+               */
+              const currentVehicle =
+                useFleetStore
+                  .getState()
+                  .vehicles.find(
+                    (item) =>
+                      item.id === vehicle.id
+                  );
+
+              if (
+                currentVehicle?.route?.path
+                  ?.length
+              ) {
+                return;
+              }
+
               const start: [number, number] = [
                 vehicle.telemetry.lng,
                 vehicle.telemetry.lat,
@@ -110,12 +169,39 @@ export const useLoadVehicles = () => {
                   MAPBOX_TOKEN
                 );
 
-              if (!cancelled) {
-                setVehicleRoutePath(
-                  vehicle.id,
-                  path
-                );
+              if (
+                cancelled ||
+                path.length < 2
+              ) {
+                return;
               }
+
+              /*
+               * Последняя проверка перед записью.
+               *
+               * Если маршрут уже появился,
+               * не сбрасываем его
+               * currentPathIndex.
+               */
+              const latestVehicle =
+                useFleetStore
+                  .getState()
+                  .vehicles.find(
+                    (item) =>
+                      item.id === vehicle.id
+                  );
+
+              if (
+                latestVehicle?.route?.path
+                  ?.length
+              ) {
+                return;
+              }
+
+              setVehicleRoutePath(
+                vehicle.id,
+                path
+              );
             } catch (error) {
               console.error(
                 `Failed to load route for vehicle ${vehicle.id}`,
@@ -154,36 +240,12 @@ export const useLoadVehicles = () => {
 
     loadVehicles();
 
-    const intervalId =
-      window.setInterval(() => {
-        const currentVehicles =
-          useFleetStore.getState().vehicles;
-
-        currentVehicles.forEach(
-          (vehicle) => {
-            if (
-              vehicle.status ===
-                "on-route" &&
-              vehicle.route?.path?.length
-            ) {
-              stepVehicleAlongRoute(
-                vehicle.id
-              );
-            }
-          }
-        );
-      }, STEP_INTERVAL);
-
     return () => {
       cancelled = true;
-      window.clearInterval(
-        intervalId
-      );
     };
   }, [
     setVehicles,
     setVehicleRoutePath,
     setSelectedVehicleId,
-    stepVehicleAlongRoute,
   ]);
 };

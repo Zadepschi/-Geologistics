@@ -1,3 +1,57 @@
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.viewSwitcher {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #243247;
+  border-radius: 9px;
+  background: #0b1422;
+}
+
+.viewButton {
+  min-width: 82px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #7f8da3;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+
+  &:hover {
+    background: #111d2d;
+    color: #dce4ee;
+  }
+}
+
+.active {
+  border-color: rgba(20, 184, 166, 0.45);
+  background: rgba(20, 184, 166, 0.12);
+  color: #f4f7fb;
+
+  &:hover {
+    background: rgba(20, 184, 166, 0.18);
+    color: #ffffff;
+  }
+}
+
+
 .page {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;

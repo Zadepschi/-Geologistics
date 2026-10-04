@@ -15,44 +15,47 @@
 
 .warning {
   margin-top: 8px !important;
-
   color: #8f9daf;
+}
+
+.error {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: 1px solid rgba(220, 80, 80, 0.3);
+  border-radius: 7px;
+  background: rgba(220, 80, 80, 0.08);
+  color: #d98b8b;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-
   margin-top: 24px;
   padding-top: 18px;
-
   border-top: 1px solid #1e2b3d;
 }
 
 .cancelButton,
 .deleteButton {
   height: 36px;
-
   padding: 0 14px;
-
   border-radius: 7px;
-
   font: inherit;
   font-size: 13px;
   font-weight: 500;
-
   cursor: pointer;
-
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
-    color 0.2s ease;
+    color 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .cancelButton {
   border: 1px solid #29384c;
-
   background: transparent;
   color: #aab5c4;
 
@@ -65,7 +68,6 @@
 
 .deleteButton {
   border: 1px solid rgba(220, 80, 80, 0.4);
-
   background: rgba(220, 80, 80, 0.1);
   color: #df9696;
 

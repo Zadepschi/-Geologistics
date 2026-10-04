@@ -13,7 +13,6 @@ interface DriverCreateModalProps {
 
 export const DriverCreateModal = ({
   open,
-  vehicles,
   onClose,
   onCreated,
 }: DriverCreateModalProps) => {
@@ -113,14 +112,17 @@ export const DriverCreateModal = ({
               Not assigned
             </option>
 
+           {/* 
             {vehicles.map((vehicle) => (
-              <option
-                key={vehicle.id}
-                value={vehicle.id}
+             <option
+             key={vehicle.id}
+             value={vehicle.id}
               >
-                {vehicle.name}
-              </option>
+            {vehicle.name}
+             </option>
             ))}
+          */}
+
           </select>
         </label>
 

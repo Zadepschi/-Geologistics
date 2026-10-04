@@ -1,27 +1,48 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
 
   width: 100%;
+  height: calc(100vh - var(--header-h));
+
+  min-height: 0;
+
+  box-sizing: border-box;
+
+  gap: 24px;
+
+  overflow: hidden;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(360px, 2fr);
+
+  grid-template-columns:
+    minmax(0, 3fr)
+    minmax(360px, 2fr);
+
+  flex: 1;
+  min-height: 0;
+
   gap: 24px;
+
   align-items: stretch;
 
   width: 100%;
+
+  overflow: hidden;
 }
 
 .grid > * {
   min-width: 0;
+  min-height: 0;
 }
 
 @media (max-width: 1200px) {
   .grid {
     grid-template-columns: 1fr;
+
+    overflow-y: auto;
   }
 }
 

@@ -3,43 +3,88 @@ import { Card } from "@/shared/ui/card/Card";
 import { useFleetStore } from "@/shared/store/fleet";
 import { VehicleCard } from "@/entities/vehicle/ui/VehicleCard";
 import type { Vehicle } from "@/entities/vehicle/model/types";
-import { deleteVehicle } from "@/shared/api/vehicles";
+import {
+  archiveVehicle,
+} from "@/shared/api/vehicles";
 import { VehicleEditModal } from "@/pages/fleet/ui/VehicleEditModal";
 import { VehicleDeleteModal } from "@/pages/fleet/ui/VehicleDeleteModal";
 import styles from "./VehicleList.module.scss";
 
+type VehicleFilter =
+  | "all"
+  | "on-route"
+  | "idle"
+  | "archived";
+
 export const VehicleList = () => {
-  const vehicles = useFleetStore((s) => s.vehicles);
-  const selectedVehicleId = useFleetStore(
-    (s) => s.selectedVehicleId
+  const vehicles = useFleetStore(
+    (state) => state.vehicles
   );
+
+  const selectedVehicleId = useFleetStore(
+    (state) => state.selectedVehicleId
+  );
+
   const setSelectedVehicleId = useFleetStore(
-    (s) => s.setSelectedVehicleId
+    (state) => state.setSelectedVehicleId
   );
 
   const [search, setSearch] = useState("");
+  const [filter, setFilter] =
+    useState<VehicleFilter>("all");
 
   const [vehicleToEdit, setVehicleToEdit] =
     useState<Vehicle | null>(null);
 
-  const [vehicleToDelete, setVehicleToDelete] =
+  const [vehicleToArchive, setVehicleToArchive] =
     useState<Vehicle | null>(null);
 
-  const [isDeleting, setIsDeleting] =
+  const [isArchiving, setIsArchiving] =
     useState(false);
+
+  const [archiveError, setArchiveError] =
+    useState("");
+
+  const activeVehicles = vehicles.filter(
+    (vehicle) => !vehicle.isArchived
+  );
+
+  const archivedVehicles = vehicles.filter(
+    (vehicle) => vehicle.isArchived
+  );
 
   const filteredVehicles = vehicles.filter(
     (vehicle) => {
-      const query = search.trim().toLowerCase();
+      const query = search
+        .trim()
+        .toLowerCase();
 
-      if (!query) {
+      const matchesSearch =
+        !query ||
+        vehicle.name
+          .toLowerCase()
+          .includes(query) ||
+        vehicle.code
+          .toLowerCase()
+          .includes(query);
+
+      if (!matchesSearch) {
+        return false;
+      }
+
+      if (filter === "archived") {
+        return vehicle.isArchived;
+      }
+
+      if (vehicle.isArchived) {
+        return false;
+      }
+
+      if (filter === "all") {
         return true;
       }
 
-      return (
-        vehicle.name.toLowerCase().includes(query) ||
-        vehicle.code.toLowerCase().includes(query)
-      );
+      return vehicle.status === filter;
     }
   );
 
@@ -47,31 +92,44 @@ export const VehicleList = () => {
     window.location.reload();
   };
 
-  const handleDelete = async () => {
-    if (!vehicleToDelete) {
+  const handleArchive = async () => {
+    if (!vehicleToArchive) {
       return;
     }
 
-    setIsDeleting(true);
+    setIsArchiving(true);
+    setArchiveError("");
 
     try {
-      await deleteVehicle(vehicleToDelete.id);
+      await archiveVehicle(
+        vehicleToArchive.id,
+        !vehicleToArchive.isArchived
+      );
 
-      setVehicleToDelete(null);
+      setVehicleToArchive(null);
 
       window.location.reload();
     } catch (error) {
       console.error(
-        "Failed to delete vehicle",
+        "Failed to archive vehicle",
         error
       );
 
-      window.alert(
-        "This vehicle cannot be deleted because it is used by existing drivers or orders."
+      setArchiveError(
+        vehicleToArchive.isArchived
+          ? "Failed to restore this vehicle."
+          : "Failed to archive this vehicle."
       );
     } finally {
-      setIsDeleting(false);
+      setIsArchiving(false);
     }
+  };
+
+  const handleArchiveClick = (
+    vehicle: Vehicle
+  ) => {
+    setArchiveError("");
+    setVehicleToArchive(vehicle);
   };
 
   return (
@@ -79,7 +137,88 @@ export const VehicleList = () => {
       <Card className={styles.listCard}>
         <div className={styles.listHeader}>
           <h2>Vehicles</h2>
-          <span>{vehicles.length}</span>
+
+          <div className={styles.filters}>
+            <button
+              type="button"
+              className={
+                filter === "all"
+                  ? styles.filterButtonActive
+                  : styles.filterButton
+              }
+              onClick={() =>
+                setFilter("all")
+              }
+            >
+              All active
+              <span>
+                {activeVehicles.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={
+                filter === "on-route"
+                  ? styles.filterButtonActive
+                  : styles.filterButton
+              }
+              onClick={() =>
+                setFilter("on-route")
+              }
+            >
+              On route
+              <span>
+                {
+                  activeVehicles.filter(
+                    (vehicle) =>
+                      vehicle.status ===
+                      "on-route"
+                  ).length
+                }
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={
+                filter === "idle"
+                  ? styles.filterButtonActive
+                  : styles.filterButton
+              }
+              onClick={() =>
+                setFilter("idle")
+              }
+            >
+              Idle
+              <span>
+                {
+                  activeVehicles.filter(
+                    (vehicle) =>
+                      vehicle.status ===
+                      "idle"
+                  ).length
+                }
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={
+                filter === "archived"
+                  ? styles.filterButtonActive
+                  : styles.filterButton
+              }
+              onClick={() =>
+                setFilter("archived")
+              }
+            >
+              Archived
+              <span>
+                {archivedVehicles.length}
+              </span>
+            </button>
+          </div>
         </div>
 
         <div className={styles.search}>
@@ -87,7 +226,9 @@ export const VehicleList = () => {
             type="search"
             value={search}
             onChange={(event) =>
-              setSearch(event.target.value)
+              setSearch(
+                event.target.value
+              )
             }
             placeholder="Search by name or code..."
             aria-label="Search vehicles"
@@ -95,46 +236,66 @@ export const VehicleList = () => {
         </div>
 
         <div className={styles.list}>
-          {filteredVehicles.map((vehicle) => (
-            <div
-              key={vehicle.id}
-              className={styles.vehicleItem}
-            >
-              <VehicleCard
-                vehicle={vehicle}
-                active={
-                  vehicle.id === selectedVehicleId
-                }
-                onClick={() =>
-                  setSelectedVehicleId(vehicle.id)
-                }
-              />
-
-              <button
-                type="button"
-                className={styles.editButton}
-                onClick={() =>
-                  setVehicleToEdit(vehicle)
-                }
+          {filteredVehicles.map(
+            (vehicle) => (
+              <div
+                key={vehicle.id}
+                className={styles.vehicleItem}
               >
-                Edit
-              </button>
+                <VehicleCard
+                  vehicle={vehicle}
+                  active={
+                    vehicle.id ===
+                    selectedVehicleId
+                  }
+                  onClick={() =>
+                    setSelectedVehicleId(
+                      vehicle.id
+                    )
+                  }
+                />
 
-              <button
-                type="button"
-                className={styles.deleteButton}
-                onClick={() =>
-                  setVehicleToDelete(vehicle)
-                }
-              >
-                Delete
-              </button>
-            </div>
-          ))}
+                {filter !== "archived" && (
+                  <button
+                    type="button"
+                    className={
+                      styles.editButton
+                    }
+                    onClick={() =>
+                      setVehicleToEdit(
+                        vehicle
+                      )
+                    }
+                  >
+                    Edit
+                  </button>
+                )}
 
-          {filteredVehicles.length === 0 && (
+                <button
+                  type="button"
+                  className={
+                    styles.deleteButton
+                  }
+                  onClick={() =>
+                    handleArchiveClick(
+                      vehicle
+                    )
+                  }
+                >
+                  {vehicle.isArchived
+                    ? "Restore"
+                    : "Archive"}
+                </button>
+              </div>
+            )
+          )}
+
+          {filteredVehicles.length ===
+            0 && (
             <div className={styles.empty}>
-              No vehicles found.
+              {filter === "archived"
+                ? "No archived vehicles."
+                : "No vehicles found."}
             </div>
           )}
         </div>
@@ -142,22 +303,34 @@ export const VehicleList = () => {
 
       <VehicleEditModal
         vehicle={vehicleToEdit}
-        onClose={() => setVehicleToEdit(null)}
-        onUpdated={handleVehicleUpdated}
+        onClose={() =>
+          setVehicleToEdit(null)
+        }
+        onUpdated={
+          handleVehicleUpdated
+        }
       />
 
       <VehicleDeleteModal
         vehicleName={
-          vehicleToDelete?.name ?? null
+          vehicleToArchive?.name ?? null
         }
-        open={vehicleToDelete !== null}
-        loading={isDeleting}
+        isArchived={
+          vehicleToArchive?.isArchived ??
+          false
+        }
+        open={
+          vehicleToArchive !== null
+        }
+        loading={isArchiving}
+        error={archiveError}
         onClose={() => {
-          if (!isDeleting) {
-            setVehicleToDelete(null);
+          if (!isArchiving) {
+            setVehicleToArchive(null);
+            setArchiveError("");
           }
         }}
-        onConfirm={handleDelete}
+        onConfirm={handleArchive}
       />
     </>
   );

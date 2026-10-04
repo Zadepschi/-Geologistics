@@ -1,7 +1,13 @@
 .detailsCard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
   padding: 22px;
 
   h2 {
+    flex-shrink: 0;
     margin: 0 0 18px;
     color: #f8fafc;
     font-size: 20px;
@@ -10,12 +16,20 @@
 
 .details {
   display: grid;
+  flex: 1;
   gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+
+  scrollbar-width: thin;
+  scrollbar-color: #29384c transparent;
 
   div {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-shrink: 0;
     gap: 16px;
     padding-bottom: 12px;
     border-bottom: 1px solid rgba(148, 163, 184, 0.15);
@@ -31,6 +45,23 @@
     font-size: 14px;
     text-align: right;
   }
+}
+
+.details::-webkit-scrollbar {
+  width: 6px;
+}
+
+.details::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.details::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #29384c;
+}
+
+.details::-webkit-scrollbar-thumb:hover {
+  background: #3a4b61;
 }
 
 .empty {

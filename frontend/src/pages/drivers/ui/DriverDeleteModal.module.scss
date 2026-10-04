@@ -6,25 +6,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
   width: 44px;
   height: 44px;
-
   margin: 0 auto 18px;
-
   border: 1px solid rgba(220, 80, 80, 0.35);
   border-radius: 50%;
-
   background: rgba(220, 80, 80, 0.1);
   color: #df8d8d;
-
   font-size: 20px;
   font-weight: 700;
 }
 
 .content p {
   margin: 0;
-
   color: #9aa8b9;
   font-size: 14px;
   line-height: 1.6;
@@ -37,9 +31,7 @@
 
 .warning {
   display: block;
-
   margin-top: 8px;
-
   color: #718096;
   font-size: 13px;
 }
@@ -48,22 +40,16 @@
   display: flex;
   justify-content: center;
   gap: 10px;
-
   margin-top: 26px;
 
   button {
     height: 38px;
-
     padding: 0 16px;
-
     border-radius: 7px;
-
     font: inherit;
     font-size: 14px;
     font-weight: 500;
-
     cursor: pointer;
-
     transition:
       background 0.2s ease,
       border-color 0.2s ease,

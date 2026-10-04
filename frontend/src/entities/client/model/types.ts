@@ -4,4 +4,5 @@ export interface Client {
   phone: string;
   email: string;
   address: string;
+  isArchived: boolean;
 }

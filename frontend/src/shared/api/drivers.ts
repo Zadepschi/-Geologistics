@@ -39,6 +39,7 @@ export async function updateDriver(
     phone: string;
     status: Driver["status"];
     vehicleId?: string | null;
+    isArchived?: boolean;
   }
 ): Promise<Driver> {
   const res = await fetch(`/api/drivers/${id}`, {
@@ -56,10 +57,43 @@ export async function updateDriver(
   return res.json();
 }
 
-export async function deleteDriver(id: string): Promise<void> {
-  const res = await fetch(`/api/drivers/${id}`, {
-    method: "DELETE",
-  });
+export async function archiveDriver(
+  id: string,
+  isArchived = true
+): Promise<Driver> {
+  const res = await fetch(
+    `/api/drivers/${id}/archive`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        isArchived,
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      isArchived
+        ? "Failed to archive driver"
+        : "Failed to restore driver"
+    );
+  }
+
+  return res.json();
+}
+
+export async function deleteDriver(
+  id: string
+): Promise<void> {
+  const res = await fetch(
+    `/api/drivers/${id}`,
+    {
+      method: "DELETE",
+    }
+  );
 
   if (!res.ok) {
     throw new Error("Failed to delete driver");

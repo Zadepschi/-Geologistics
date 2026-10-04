@@ -38,6 +38,7 @@ export async function updateClient(
     phone: string;
     email: string;
     address: string;
+    isArchived?: boolean;
   }
 ): Promise<Client> {
   const res = await fetch(`/api/clients/${id}`, {
@@ -55,10 +56,43 @@ export async function updateClient(
   return res.json();
 }
 
-export async function deleteClient(id: string): Promise<void> {
-  const res = await fetch(`/api/clients/${id}`, {
-    method: "DELETE",
-  });
+export async function archiveClient(
+  id: string,
+  isArchived = true
+): Promise<Client> {
+  const res = await fetch(
+    `/api/clients/${id}/archive`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        isArchived,
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(
+      isArchived
+        ? "Failed to archive client"
+        : "Failed to restore client",
+    );
+  }
+
+  return res.json();
+}
+
+export async function deleteClient(
+  id: string
+): Promise<void> {
+  const res = await fetch(
+    `/api/clients/${id}`,
+    {
+      method: "DELETE",
+    },
+  );
 
   if (!res.ok) {
     throw new Error("Failed to delete client");
