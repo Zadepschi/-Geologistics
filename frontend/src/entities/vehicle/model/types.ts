@@ -4,17 +4,26 @@ export type VehicleStatus =
   | "maintenance"
   | "delayed";
 
-export type VehicleType = "truck" | "van" | "bike";
+export type VehicleType =
+  | "truck"
+  | "van"
+  | "bike";
 
 export type LngLat = [number, number];
 
 export interface VehicleRoute {
+  orderId: string;
+
   start: LngLat;
   finish: LngLat;
   path: LngLat[];
+
   completedPath?: LngLat[];
+
   etaMinutes?: number;
+
   deliveryCompleted?: boolean;
+
   currentPathIndex?: number;
 }
 
@@ -23,8 +32,11 @@ export interface Vehicle {
   code: string;
   name: string;
   type: VehicleType;
+
   status: VehicleStatus;
+
   isArchived: boolean;
+
   telemetry: {
     lat: number;
     lng: number;
@@ -32,5 +44,6 @@ export interface Vehicle {
     heading?: number;
     updatedAt?: string;
   };
+
   route?: VehicleRoute;
 }

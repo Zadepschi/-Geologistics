@@ -1,59 +1,50 @@
-import { useEffect, useState } from "react";
 import { Card } from "@/shared/ui/card/Card";
 import { VehicleCard } from "@/entities/vehicle/ui/VehicleCard";
 import { useFleetStore } from "@/shared/store/fleet";
-import type { Order } from "@/entities/order";
-import { fetchOrders } from "@/shared/api/orders";
 
 import styles from "./VehiclesPanel.module.scss";
 
 export const VehiclesPanel = () => {
-  const vehicles = useFleetStore((s) => s.vehicles);
+  const vehicles = useFleetStore(
+    (state) => state.vehicles
+  );
 
   const selectedVehicleId = useFleetStore(
-    (s) => s.selectedVehicleId
+    (state) => state.selectedVehicleId
   );
 
   const setSelectedVehicleId = useFleetStore(
-    (s) => s.setSelectedVehicleId
+    (state) => state.setSelectedVehicleId
   );
 
-  const [orders, setOrders] = useState<Order[]>([]);
-
-  useEffect(() => {
-    fetchOrders()
-      .then(setOrders)
-      .catch((error) => {
-        console.error(
-          "Failed to load orders for vehicles panel",
-          error
-        );
-      });
-  }, []);
-
-  const activeVehicleIds = new Set(
-    orders
-      .filter(
-        (order) =>
-          order.status === "in-progress" ||
-          order.status === "delayed"
-      )
-      .map((order) => order.vehicleId)
-  );
-
-  
+  /*
+   * Заказы здесь больше не загружаем.
+   *
+   * useLoadVehicles() уже получает orders из backend
+   * и восстанавливает route непосредственно в Zustand.
+   *
+   * Поэтому VehiclesPanel использует только состояние
+   * vehicles из store.
+   */
 
   const activeVehicles = vehicles.filter(
-  (vehicle) =>
-    !vehicle.isArchived &&
-    activeVehicleIds.has(vehicle.id)
-);
-  
+    (vehicle) =>
+      !vehicle.isArchived &&
+      (
+        vehicle.status === "on-route" ||
+        vehicle.status === "delayed"
+      ) &&
+      Boolean(vehicle.route) &&
+      !vehicle.route?.deliveryCompleted
+  );
 
   return (
     <Card className={styles.panel}>
       <div className={styles.header}>
-        <div className={styles.title}>Vehicles</div>
+        <div className={styles.title}>
+          Vehicles
+        </div>
+
         <div className={styles.count}>
           {activeVehicles.length}
         </div>

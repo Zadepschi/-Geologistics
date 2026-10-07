@@ -1,20 +1,29 @@
 import { Card } from "@/shared/ui/card/Card";
+
 import { useEffect, useState } from "react";
+
 import type { Client } from "@/entities/client";
 import { fetchClients } from "@/shared/api/clients";
+
 import type { Driver } from "@/entities/driver";
 import { fetchDrivers } from "@/shared/api/drivers";
+
 import type { Order } from "@/entities/order";
+
 import {
   deleteOrder,
   fetchOrders,
   updateOrderStatus,
   updateOrderVehicle,
 } from "@/shared/api/orders";
+
 import { useFleetStore } from "@/shared/store/fleet";
+
 import { geocodeAddress } from "@/shared/api/geocodeAddress";
 import { fetchStreetRoute } from "@/shared/api/fetchStreetRoute";
+
 import { AssignVehicleModal } from "@/pages/dispatch/ui/AssignVehicleModal";
+
 import styles from "./DispatchOrders.module.scss";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
@@ -94,8 +103,8 @@ export const DispatchOrders = ({
     (state) => state.setVehicles
   );
 
-  const setVehicleRoutePath = useFleetStore(
-    (state) => state.setVehicleRoutePath
+  const setVehicleRouteState = useFleetStore(
+    (state) => state.setVehicleRouteState
   );
 
   const availableVehicles = vehicles.filter(
@@ -140,202 +149,145 @@ export const DispatchOrders = ({
     });
   };
 
-  /*
-  useEffect(() => {
-    const completedOrders = orders.filter(
-      (order) => {
-        if (order.status !== "in-progress") {
-          return false;
-        }
+  const handleStartDelivery = async (
+    order: Order
+  ) => {
+    clearOrderActionError(order.id);
 
-        const vehicle = vehicles.find(
-          (item) => item.id === order.vehicleId
-        );
+    try {
+      const vehicle = vehicles.find(
+        (item) => item.id === order.vehicleId
+      );
 
-        return (
-          vehicle?.route?.deliveryCompleted ===
-          true
+      if (!vehicle) {
+        throw new Error(
+          "Assigned vehicle was not found."
         );
       }
-    );
 
-    if (completedOrders.length === 0) {
-      return;
-    }
+      if (!MAPBOX_TOKEN) {
+        throw new Error(
+          "Mapbox token is missing."
+        );
+      }
 
-    let cancelled = false;
+      if (
+        typeof vehicle.telemetry.lat !== "number" ||
+        typeof vehicle.telemetry.lng !== "number"
+      ) {
+        throw new Error(
+          "Assigned vehicle does not have a valid location."
+        );
+      }
 
-    const syncCompletedOrders = async () => {
-      try {
-        const updatedOrders =
-          await Promise.all(
-            completedOrders.map((order) =>
-              updateOrderStatus(
-                order.id,
-                "completed"
-              )
-            )
-          );
+      const destination =
+        await geocodeAddress(
+          order.address
+        );
 
-        if (cancelled) {
-          return;
-        }
+      const start: [number, number] = [
+        vehicle.telemetry.lng,
+        vehicle.telemetry.lat,
+      ];
 
-        setOrders((currentOrders) =>
-          currentOrders.map((order) => {
-            const updatedOrder =
-              updatedOrders.find(
-                (item) => item.id === order.id
+      const finish: [number, number] = [
+        destination.longitude,
+        destination.latitude,
+      ];
+
+      const route = await fetchStreetRoute(
+        start,
+        finish,
+        MAPBOX_TOKEN
+      );
+
+      if (route.length < 2) {
+        throw new Error(
+          "Route for delivery is empty."
+        );
+      }
+
+      /*
+       * PostgreSQL is the source of truth.
+       *
+       * The route is saved by the backend together
+       * with the transition to in-progress.
+       */
+      const updatedOrder =
+        await updateOrderStatus(
+          order.id,
+          "in-progress",
+          {
+            start,
+            finish,
+            path: route,
+          }
+        );
+
+      setOrders((currentOrders) =>
+        currentOrders.map((item) =>
+          item.id === updatedOrder.id
+            ? updatedOrder
+            : item
+        )
+      );
+
+      /*
+       * The backend returns the persisted delivery route.
+       * Only after successful persistence do we update
+       * the frontend runtime state.
+       */
+      const deliveryRoute =
+        updatedOrder.deliveryRoute;
+
+      if (deliveryRoute) {
+        const currentPathIndex = Math.max(
+          0,
+          Math.min(
+            deliveryRoute.currentPathIndex,
+            deliveryRoute.path.length - 1
+          )
+        );
+
+        const completedPath =
+          deliveryRoute.completedPath?.length
+            ? deliveryRoute.completedPath
+            : deliveryRoute.path.slice(
+                0,
+                currentPathIndex + 1
               );
 
-            return updatedOrder ?? order;
-          })
-        );
-      } catch (error) {
-        console.error(
-          "Failed to sync completed delivery orders",
-          error
+        setVehicleRouteState(
+          vehicle.id,
+          {
+            orderId: deliveryRoute.orderId,
+            start: deliveryRoute.start,
+            finish: deliveryRoute.finish,
+            path: deliveryRoute.path,
+            completedPath,
+            currentPathIndex,
+            deliveryCompleted:
+              Boolean(
+                deliveryRoute.completedAt
+              ),
+            etaMinutes: 0,
+          }
         );
       }
-    };
-
-    syncCompletedOrders();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [orders, vehicles]);
-  */
-
-const handleStartDelivery = async (
-  order: Order
-) => {
-  clearOrderActionError(order.id);
-
-  try {
-    const vehicle = vehicles.find(
-      (item) => item.id === order.vehicleId
-    );
-
-    if (!vehicle) {
-      throw new Error(
-        "Assigned vehicle was not found."
+    } catch (error) {
+      console.error(
+        `Failed to start delivery for order ${order.id}`,
+        error
       );
-    }
 
-    if (!MAPBOX_TOKEN) {
-      throw new Error(
-        "Mapbox token is missing."
-      );
-    }
-
-    if (
-      typeof vehicle.telemetry.lat !== "number" ||
-      typeof vehicle.telemetry.lng !== "number"
-    ) {
-      throw new Error(
-        "Assigned vehicle does not have a valid location."
-      );
-    }
-
-    /*
-     * Строим маршрут непосредственно перед Start delivery.
-     *
-     * Это важно для новых заказов:
-     * машина уже назначена при создании заказа,
-     * поэтому handleAssignVehicle не вызывается.
-     */
-    const destination = await geocodeAddress(
-      order.address
-    );
-
-    const start: [number, number] = [
-      vehicle.telemetry.lng,
-      vehicle.telemetry.lat,
-    ];
-
-    const finish: [number, number] = [
-      destination.longitude,
-      destination.latitude,
-    ];
-
-    const route = await fetchStreetRoute(
-      start,
-      finish,
-      MAPBOX_TOKEN
-    );
-
-    if (route.length < 2) {
-      throw new Error(
-        "Route for delivery is empty."
-      );
-    }
-
-    /*
-     * Сохраняем маршрут в frontend store.
-     * Именно отсюда карта получает vehicle.route.
-     */
-    setVehicleRoutePath(
-      vehicle.id,
-      route
-    );
-
-    /*
-     * Обновляем локальное состояние машины.
-     */
-    setVehicles(
-      vehicles.map((item) =>
-        item.id === vehicle.id
-          ? {
-              ...item,
-              status: "on-route",
-              route: item.route
-                ? {
-                    ...item.route,
-                    deliveryCompleted: false,
-                  }
-                : item.route,
-            }
-          : item
-      )
-    );
-
-    /*
-     * Переводим заказ в in-progress
-     * и передаём тот же маршрут backend.
-     */
-    const updatedOrder =
-      await updateOrderStatus(
+      setOrderActionError(
         order.id,
-        "in-progress",
-        {
-          start,
-          finish,
-          path: route,
-        }
+        error instanceof Error
+          ? error.message
+          : "Failed to start delivery."
       );
-
-    setOrders((currentOrders) =>
-      currentOrders.map((item) =>
-        item.id === updatedOrder.id
-          ? updatedOrder
-          : item
-      )
-    );
-  } catch (error) {
-    console.error(
-      `Failed to start delivery for order ${order.id}`,
-      error
-    );
-
-    setOrderActionError(
-      order.id,
-      error instanceof Error
-        ? error.message
-        : "Failed to start delivery."
-    );
-  }
-};
+    }
+  };
 
   const handleMarkCompleted = async (
     order: Order
@@ -508,44 +460,17 @@ const handleStartDelivery = async (
       return;
     }
 
-    if (!MAPBOX_TOKEN) {
-      setAssignError(
-        "Mapbox token is missing."
-      );
-      return;
-    }
-
     setAssignError("");
     setIsAssigning(true);
 
     try {
-      const destination =
-        await geocodeAddress(
-          assignOrder.address
-        );
-
-      const start: [number, number] = [
-        selectedVehicle.telemetry.lng,
-        selectedVehicle.telemetry.lat,
-      ];
-
-      const finish: [number, number] = [
-        destination.longitude,
-        destination.latitude,
-      ];
-
-      const route = await fetchStreetRoute(
-        start,
-        finish,
-        MAPBOX_TOKEN
-      );
-
-      if (route.length < 2) {
-        throw new Error(
-          "Route for selected vehicle is empty."
-        );
-      }
-
+      /*
+       * Assigning a vehicle does NOT create or
+       * reset a delivery route.
+       *
+       * The route is created only when the user
+       * presses "Start delivery".
+       */
       const updatedOrder =
         await updateOrderVehicle(
           assignOrder.id,
@@ -558,11 +483,6 @@ const handleStartDelivery = async (
             ? updatedOrder
             : order
         )
-      );
-
-      setVehicleRoutePath(
-        selectedVehicle.id,
-        route
       );
 
       setAssignOrder(null);
@@ -619,7 +539,9 @@ const handleStartDelivery = async (
                 }
               >
                 Completed
-                <span>{completedOrders.length}</span>
+                <span>
+                  {completedOrders.length}
+                </span>
               </button>
             </div>
           </div>
@@ -652,9 +574,9 @@ const handleStartDelivery = async (
               order.status !== "in-progress" &&
               order.status !== "completed";
 
-          const canStartDelivery =
-  order.status === "assigned" &&
-  !!assignedVehicle;
+            const canStartDelivery =
+              order.status === "assigned" &&
+              !!assignedVehicle;
 
             const canMarkCompleted =
               order.status !== "completed";

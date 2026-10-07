@@ -1,121 +1,301 @@
 import { useEffect } from "react";
+
+import { advanceOrderProgress } from "@/shared/api/orders";
+
 import { useFleetStore } from "@/shared/store/fleet";
+
+const PROGRESS_INTERVAL_MS = 700;
 
 const STEP_INTERVAL_MS = 700;
 
+const calculateEtaMinutes = (
+  pathLength: number,
+  currentPathIndex: number,
+  deliveryCompleted: boolean
+): number => {
+  if (
+    deliveryCompleted ||
+    pathLength < 2
+  ) {
+    return 0;
+  }
+
+  const remainingPoints =
+    Math.max(
+      0,
+      pathLength -
+        1 -
+        currentPathIndex
+    );
+
+  if (
+    remainingPoints <= 0
+  ) {
+    return 0;
+  }
+
+  const remainingMs =
+    remainingPoints *
+    STEP_INTERVAL_MS;
+
+  return Math.max(
+    1,
+    Math.ceil(
+      remainingMs / 60000
+    )
+  );
+};
+
 export const useLiveTracking = () => {
   useEffect(() => {
-    let lastTickAt = Date.now();
+    let cancelled = false;
 
-    const intervalId = window.setInterval(() => {
-      const now = Date.now();
-      const elapsedMs = now - lastTickAt;
+    let requestInProgress =
+      false;
 
-      lastTickAt = now;
-
-      const steps = Math.max(
-        1,
-        Math.floor(
-          elapsedMs / STEP_INTERVAL_MS
-        )
-      );
-
-      const {
-        vehicles,
-        stepVehicleAlongRoute,
-      } = useFleetStore.getState();
-
-      vehicles.forEach((vehicle) => {
-        const route = vehicle.route;
-
+    const syncProgress =
+      async () => {
         if (
-          vehicle.status !== "on-route" ||
-          !route?.path ||
-          route.path.length <= 1
+          cancelled ||
+          requestInProgress
         ) {
           return;
         }
 
-        const currentPathIndex =
-          route.currentPathIndex ?? 0;
+        requestInProgress =
+          true;
 
-        const lastPathIndex =
-          route.path.length - 1;
-
-        /*
-         * Машина уже физически дошла
-         * до последней точки маршрута.
-         *
-         * Не двигаем её дальше.
-         *
-         * Важно:
-         * deliveryCompleted здесь намеренно
-         * не используется.
-         *
-         * Статус завершения заказа должен
-         * определяться заказом, а не этим
-         * локальным runtime-флагом маршрута.
-         */
-        if (
-          currentPathIndex >= lastPathIndex
-        ) {
-          return;
-        }
-
-        for (
-          let i = 0;
-          i < steps;
-          i += 1
-        ) {
-          const currentVehicle =
+        try {
+          const vehicles =
             useFleetStore
               .getState()
-              .vehicles.find(
-                (item) =>
-                  item.id === vehicle.id
-              );
+              .vehicles;
 
-          if (!currentVehicle) {
-            break;
-          }
-
-          if (
-            currentVehicle.status !==
-            "on-route"
-          ) {
-            break;
-          }
-
-          const currentRoute =
-            currentVehicle.route;
+          const activeVehicles =
+            vehicles.filter(
+              (vehicle) =>
+                vehicle.status ===
+                  "on-route" &&
+                vehicle.route &&
+                !vehicle.route
+                  .deliveryCompleted
+            );
 
           if (
-            !currentRoute?.path ||
-            currentRoute.path.length <= 1
+            activeVehicles.length ===
+            0
           ) {
-            break;
+            return;
           }
 
-          const currentIndex =
-            currentRoute.currentPathIndex ??
-            0;
+          await Promise.all(
+            activeVehicles.map(
+              async (vehicle) => {
+                const route =
+                  vehicle.route;
 
-          const lastIndex =
-            currentRoute.path.length - 1;
+                if (!route) {
+                  return;
+                }
 
-          if (currentIndex >= lastIndex) {
-            break;
-          }
+                try {
+                  /*
+                   * PostgreSQL calculates
+                   * the actual progress.
+                   *
+                   * Frontend does NOT increment
+                   * currentPathIndex itself.
+                   */
+                  const result =
+                    await advanceOrderProgress(
+                      route.orderId
+                    );
 
-          stepVehicleAlongRoute(
-            currentVehicle.id
+                  if (cancelled) {
+                    return;
+                  }
+
+                  /*
+                   * Backend now returns only
+                   * progress information.
+                   *
+                   * It does NOT return:
+                   * - path
+                   * - completedPath
+                   * - start
+                   * - finish
+                   *
+                   * Those values are already
+                   * available in `route`.
+                   */
+                  const backendRoute =
+                    result.route;
+
+                  if (
+                    !backendRoute
+                  ) {
+                    return;
+                  }
+
+                  /*
+                   * currentPathIndex comes
+                   * from PostgreSQL.
+                   */
+                  const currentPathIndex =
+                    Math.max(
+                      0,
+                      Math.min(
+                        backendRoute.currentPathIndex,
+                        route.path.length -
+                          1
+                      )
+                    );
+
+                  /*
+                   * completed state also comes
+                   * from backend.
+                   */
+                  const deliveryCompleted =
+                    result.completed ||
+                    Boolean(
+                      backendRoute.completedAt
+                    );
+
+                  /*
+                   * The full path is already
+                   * stored in the frontend.
+                   *
+                   * We only derive the visually
+                   * completed part from the index.
+                   */
+                  const completedPath =
+                    route.path.slice(
+                      0,
+                      currentPathIndex +
+                        1
+                    );
+
+                  /*
+                   * ETA is calculated from the
+                   * remaining route points.
+                   *
+                   * 1 point = 700 ms.
+                   */
+                  const etaMinutes =
+                    calculateEtaMinutes(
+                      route.path.length,
+                      currentPathIndex,
+                      deliveryCompleted
+                    );
+
+                  useFleetStore
+                    .getState()
+                    .setVehicleRouteState(
+                      vehicle.id,
+                      {
+                        orderId:
+                          route.orderId,
+
+                        start:
+                          route.start,
+
+                        finish:
+                          route.finish,
+
+                        path:
+                          route.path,
+
+                        completedPath,
+
+                        currentPathIndex,
+
+                        deliveryCompleted,
+
+                        etaMinutes,
+                      }
+                    );
+                } catch (error) {
+                  console.error(
+                    `[useLiveTracking] Failed to sync delivery progress for order ${route.orderId}`,
+                    error
+                  );
+                }
+              }
+            )
           );
+        } finally {
+          requestInProgress =
+            false;
         }
-      });
-    }, STEP_INTERVAL_MS);
+      };
+
+    /*
+     * Initial synchronization.
+     *
+     * Important after:
+     * - browser refresh;
+     * - tab wake-up;
+     * - computer sleep/wake.
+     *
+     * Backend calculates elapsed time
+     * using lastProgressAt.
+     */
+    void syncProgress();
+
+    const intervalId =
+      window.setInterval(
+        () => {
+          void syncProgress();
+        },
+        PROGRESS_INTERVAL_MS
+      );
+
+    /*
+     * Browser tab became visible again.
+     */
+    const handleVisibilityChange =
+      () => {
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+          void syncProgress();
+        }
+      };
+
+    /*
+     * Browser window became active again.
+     */
+    const handleFocus = () => {
+      void syncProgress();
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    window.addEventListener(
+      "focus",
+      handleFocus
+    );
 
     return () => {
-      window.clearInterval(intervalId);
+      cancelled = true;
+
+      window.clearInterval(
+        intervalId
+      );
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+
+      window.removeEventListener(
+        "focus",
+        handleFocus
+      );
     };
   }, []);
 };

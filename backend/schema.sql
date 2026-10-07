@@ -89,6 +89,17 @@ CREATE TABLE delivery_routes (
 
   path JSONB NOT NULL,
 
+  -- Текущая точка маршрута.
+  -- 0 = первая точка path.
+  current_path_index INTEGER NOT NULL DEFAULT 0
+    CHECK (current_path_index >= 0),
+
+  -- Точки маршрута, которые уже пройдены.
+  completed_path JSONB NOT NULL DEFAULT '[]'::jsonb,
+
+  -- Время последнего сохранения прогресса маршрута.
+  last_progress_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
   started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   completed_at TIMESTAMPTZ
 );
@@ -99,3 +110,23 @@ CREATE TABLE notifications (
   text TEXT NOT NULL,
   read BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+
+-- =========================================================
+-- Индексы delivery_routes
+-- =========================================================
+
+CREATE INDEX idx_delivery_routes_order_id
+  ON delivery_routes(order_id);
+
+
+CREATE INDEX idx_delivery_routes_vehicle_id
+  ON delivery_routes(vehicle_id);
+
+
+-- Один активный маршрут на один заказ.
+-- Завершённые маршруты не участвуют в этом ограничении.
+
+CREATE UNIQUE INDEX ux_delivery_routes_active_order
+  ON delivery_routes(order_id)
+  WHERE completed_at IS NULL;

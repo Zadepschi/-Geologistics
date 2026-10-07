@@ -5,12 +5,14 @@ import {
   type OrderStatus,
 } from "./types/orders.js";
 import { user } from "./data/user.js";
+import cors from "cors";
 
 const app = express();
 
-const PORT = 3000;
-
+app.use(cors());
 app.use(express.json({ limit: "1mb" }));
+
+const PORT = 3000;
 
 app.get("/api/health", (_req, res) => {
   res.json({
@@ -945,6 +947,8 @@ app.get("/api/orders", async (_req, res) => {
   }
 });
 
+
+
 app.post("/api/orders", async (req, res) => {
   const client = await pool.connect();
 
@@ -1497,7 +1501,7 @@ app.patch("/api/orders/:id/status", async (req, res) => {
     };
 
     // -----------------------------------------------------------------------
-    // 1. Проверяем, что статус вообще допустимый
+    // 1. Проверяем допустимый статус
     // -----------------------------------------------------------------------
 
     if (
@@ -1513,11 +1517,8 @@ app.patch("/api/orders/:id/status", async (req, res) => {
     await client.query("BEGIN");
 
     // -----------------------------------------------------------------------
-    // 2. Получаем текущий заказ и блокируем его строку
-    //
-    // ВАЖНО:
-    // Здесь пока НЕ меняем status.
-    // FOR UPDATE защищает от параллельных изменений одного заказа.
+    // 2. Получаем заказ и блокируем его строку.
+    // Это защищает от параллельного изменения одного заказа.
     // -----------------------------------------------------------------------
 
     const orderResult = await client.query(
@@ -1548,7 +1549,7 @@ app.patch("/api/orders/:id/status", async (req, res) => {
     const order = orderResult.rows[0];
 
     // -----------------------------------------------------------------------
-    // 3. Проверяем допустимость перехода
+    // 3. Проверяем допустимость перехода статуса
     // -----------------------------------------------------------------------
 
     const currentStatus = order.status as OrderStatus;
@@ -1569,116 +1570,145 @@ app.patch("/api/orders/:id/status", async (req, res) => {
     }
 
     // -----------------------------------------------------------------------
-    // 4. Если начинаем доставку — маршрут обязателен
+    // 4. START DELIVERY
     // -----------------------------------------------------------------------
 
- if (status === "in-progress") {
-  // -----------------------------------------------------------------------
-  // 5. Проверяем маршрут
-  // -----------------------------------------------------------------------
+    if (status === "in-progress") {
+      // ---------------------------------------------------------------------
+      // 4.1 Проверяем маршрут
+      // ---------------------------------------------------------------------
 
-  if (
-    !route?.start ||
-    !route?.finish ||
-    !route?.path ||
-    route.path.length < 2
-  ) {
-    await client.query("ROLLBACK");
+      if (
+        !route?.start ||
+        !route?.finish ||
+        !route?.path ||
+        route.path.length < 2
+      ) {
+        await client.query("ROLLBACK");
 
-    return res.status(400).json({
-      message: "Route is required to start delivery",
-    });
-  }
+        return res.status(400).json({
+          message: "Route is required to start delivery",
+        });
+      }
 
-  // -----------------------------------------------------------------------
-  // 6. Проверяем, нет ли уже активного маршрута у заказа
-  // -----------------------------------------------------------------------
+      // ---------------------------------------------------------------------
+      // 4.2 Проверяем активный маршрут
+      // ---------------------------------------------------------------------
 
-  const activeRouteResult = await client.query(
-    `
-      SELECT id
-      FROM delivery_routes
-      WHERE order_id = $1
-        AND completed_at IS NULL
-      LIMIT 1
-    `,
-    [order.id]
-  );
+      const activeRouteResult = await client.query(
+        `
+          SELECT id
+          FROM delivery_routes
+          WHERE order_id = $1
+            AND completed_at IS NULL
+          LIMIT 1
+        `,
+        [order.id]
+      );
 
-  if (activeRouteResult.rows.length > 0) {
-    await client.query("ROLLBACK");
+      if (activeRouteResult.rows.length > 0) {
+        await client.query("ROLLBACK");
 
-    return res.status(409).json({
-      message: "Order already has an active delivery route",
-    });
-  }
+        return res.status(409).json({
+          message: "Order already has an active delivery route",
+        });
+      }
 
-  // -----------------------------------------------------------------------
-  // 7. Создаём маршрут
-  // -----------------------------------------------------------------------
+      // ---------------------------------------------------------------------
+      // 4.3 Создаём маршрут.
+      //
+      // ВАЖНО:
+      // current_path_index = 0
+      // completed_path = первая точка
+      // last_progress_at = NOW()
+      //
+      // С этого момента прогресс принадлежит PostgreSQL.
+      // ---------------------------------------------------------------------
 
-  await client.query(
-    `
-      INSERT INTO delivery_routes (
-        order_id,
-        vehicle_id,
-        driver_id,
-        start_lat,
-        start_lng,
-        finish_lat,
-        finish_lng,
-        path
-      )
-      VALUES (
-        $1,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
-        $7,
-        $8
-      )
-    `,
-    [
-      order.id,
-      order.vehicleId,
-      order.driverId,
-      route.start[1],
-      route.start[0],
-      route.finish[1],
-      route.finish[0],
-      JSON.stringify(route.path),
-    ]
-  );
+      await client.query(
+        `
+          INSERT INTO delivery_routes (
+            order_id,
+            vehicle_id,
+            driver_id,
+            start_lat,
+            start_lng,
+            finish_lat,
+            finish_lng,
+            path,
+            current_path_index,
+            completed_path,
+            last_progress_at
+          )
+          VALUES (
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7,
+            $8,
+            0,
+            $9::jsonb,
+            NOW()
+          )
+        `,
+        [
+          order.id,
+          order.vehicleId,
+          order.driverId,
 
-  // -----------------------------------------------------------------------
-  // 8. Переводим машину на маршрут
-  // -----------------------------------------------------------------------
+          // В БД храним latitude / longitude отдельно.
+          route.start[1],
+          route.start[0],
 
-  const vehicleResult = await client.query(
-    `
-      UPDATE vehicles
-      SET
-        status = 'on-route'
-      WHERE id = $1
-        AND status = 'idle'
-      RETURNING id
-    `,
-    [order.vehicleId]
-  );
+          route.finish[1],
+          route.finish[0],
 
-  if (vehicleResult.rows.length === 0) {
-    await client.query("ROLLBACK");
+          JSON.stringify(route.path),
 
-    return res.status(409).json({
-      message: "Vehicle is no longer available",
-    });
-  }
-}
+          // Первая точка маршрута уже считается пройденной
+          // начальной точкой.
+          JSON.stringify([route.path[0]]),
+        ]
+      );
+
+      // ---------------------------------------------------------------------
+      // 4.4 Переводим машину на маршрут
+      // ---------------------------------------------------------------------
+
+      const vehicleResult = await client.query(
+        `
+          UPDATE vehicles
+          SET
+            status = 'on-route',
+            lat = $1,
+            lng = $2,
+            speed_kmh = 0,
+            telemetry_updated_at = NOW()
+          WHERE id = $3
+            AND status = 'idle'
+          RETURNING id
+        `,
+        [
+          route.start[1],
+          route.start[0],
+          order.vehicleId,
+        ]
+      );
+
+      if (vehicleResult.rows.length === 0) {
+        await client.query("ROLLBACK");
+
+        return res.status(409).json({
+          message: "Vehicle is no longer available",
+        });
+      }
+    }
 
     // -----------------------------------------------------------------------
-    // 7. Теперь, когда все проверки пройдены, меняем статус заказа
+    // 5. Меняем статус заказа
     // -----------------------------------------------------------------------
 
     await client.query(
@@ -1691,35 +1721,38 @@ app.patch("/api/orders/:id/status", async (req, res) => {
     );
 
     // -----------------------------------------------------------------------
-    // 8. Завершение доставки
+    // 6. Если доставка завершена вручную —
+    // закрываем маршрут и освобождаем ресурсы.
     // -----------------------------------------------------------------------
 
     if (status === "completed") {
-      // Закрываем активный маршрут
+      // Закрываем активный маршрут.
       await client.query(
         `
           UPDATE delivery_routes
           SET
-            completed_at = NOW()
+            completed_at = NOW(),
+            last_progress_at = NOW()
           WHERE order_id = $1
             AND completed_at IS NULL
         `,
         [order.id]
       );
 
-      // Освобождаем машину
+      // Освобождаем машину.
       await client.query(
         `
           UPDATE vehicles
           SET
             status = 'idle',
-            speed_kmh = 0
+            speed_kmh = 0,
+            telemetry_updated_at = NOW()
           WHERE id = $1
         `,
         [order.vehicleId]
       );
 
-      // Освобождаем водителя
+      // Освобождаем водителя.
       await client.query(
         `
           UPDATE drivers
@@ -1732,7 +1765,7 @@ app.patch("/api/orders/:id/status", async (req, res) => {
     }
 
     // -----------------------------------------------------------------------
-    // 9. Получаем адрес доставки
+    // 7. Получаем адрес доставки
     // -----------------------------------------------------------------------
 
     const addressResult = await client.query(
@@ -1750,13 +1783,49 @@ app.patch("/api/orders/:id/status", async (req, res) => {
     const deliveryAddress = addressResult.rows[0];
 
     // -----------------------------------------------------------------------
-    // 10. Фиксируем транзакцию
+    // 8. Получаем актуальное состояние маршрута
+    // -----------------------------------------------------------------------
+
+    const routeResult = await client.query(
+      `
+        SELECT
+          id,
+          order_id AS "orderId",
+          vehicle_id AS "vehicleId",
+          driver_id AS "driverId",
+
+          start_lat AS "startLat",
+          start_lng AS "startLng",
+
+          finish_lat AS "finishLat",
+          finish_lng AS "finishLng",
+
+          path,
+          current_path_index AS "currentPathIndex",
+          completed_path AS "completedPath",
+
+          started_at AS "startedAt",
+          last_progress_at AS "lastProgressAt",
+          completed_at AS "completedAt"
+
+        FROM delivery_routes
+        WHERE order_id = $1
+        ORDER BY id DESC
+        LIMIT 1
+      `,
+      [order.id]
+    );
+
+    const deliveryRoute = routeResult.rows[0] ?? null;
+
+    // -----------------------------------------------------------------------
+    // 9. Фиксируем транзакцию
     // -----------------------------------------------------------------------
 
     await client.query("COMMIT");
 
     // -----------------------------------------------------------------------
-    // 11. Возвращаем обновлённый заказ
+    // 10. Возвращаем обновлённый заказ вместе с маршрутом
     // -----------------------------------------------------------------------
 
     return res.json({
@@ -1767,18 +1836,54 @@ app.patch("/api/orders/:id/status", async (req, res) => {
       eta: order.eta ?? "—",
       vehicleId: order.vehicleId,
       driverId: order.driverId,
+
       deliveryAddress: {
         id: order.deliveryAddressId,
         latitude: deliveryAddress?.latitude ?? null,
         longitude: deliveryAddress?.longitude ?? null,
       },
+
+      deliveryRoute: deliveryRoute
+        ? {
+            id: deliveryRoute.id,
+            orderId: deliveryRoute.orderId,
+            vehicleId: deliveryRoute.vehicleId,
+            driverId: deliveryRoute.driverId,
+
+            start: [
+              deliveryRoute.startLng,
+              deliveryRoute.startLat,
+            ],
+
+            finish: [
+              deliveryRoute.finishLng,
+              deliveryRoute.finishLat,
+            ],
+
+            path: deliveryRoute.path,
+
+            currentPathIndex:
+              deliveryRoute.currentPathIndex,
+
+            completedPath:
+              deliveryRoute.completedPath,
+
+            startedAt:
+              deliveryRoute.startedAt,
+
+            lastProgressAt:
+              deliveryRoute.lastProgressAt,
+
+            completedAt:
+              deliveryRoute.completedAt,
+          }
+        : null,
     });
   } catch (error) {
-    // Если транзакция уже началась — откатываем
     try {
       await client.query("ROLLBACK");
     } catch {
-      // Игнорируем ошибку rollback
+      // Игнорируем ошибку rollback.
     }
 
     console.error(
@@ -1793,24 +1898,525 @@ app.patch("/api/orders/:id/status", async (req, res) => {
     client.release();
   }
 });
+
+
+app.patch("/api/orders/:id/progress", async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // ------------------------------------------------------------
+    // 1. Блокируем заказ.
+    //
+    // Это защищает от двух вкладок браузера,
+    // одновременно двигающих один и тот же маршрут.
+    // ------------------------------------------------------------
+
+    const orderResult = await client.query(
+      `
+        SELECT
+          id,
+          status,
+          vehicle_id AS "vehicleId",
+          driver_id AS "driverId"
+        FROM orders
+        WHERE id = $1
+        FOR UPDATE
+      `,
+      [req.params.id]
+    );
+
+    if (orderResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+
+      return res.status(404).json({
+        message: "Order not found",
+      });
+    }
+
+    const order = orderResult.rows[0];
+
+    // ------------------------------------------------------------
+    // 2. Получаем последний маршрут и блокируем его.
+    //
+    // В отличие от старой версии здесь НЕ фильтруем
+    // completed_at IS NULL.
+    //
+    // Это позволяет корректно вернуть состояние уже
+    // завершённого маршрута при повторном запросе.
+    // ------------------------------------------------------------
+
+    const routeResult = await client.query(
+      `
+        SELECT
+          id,
+          order_id AS "orderId",
+          vehicle_id AS "vehicleId",
+          driver_id AS "driverId",
+
+          start_lat AS "startLat",
+          start_lng AS "startLng",
+
+          finish_lat AS "finishLat",
+          finish_lng AS "finishLng",
+
+          path,
+          current_path_index AS "currentPathIndex",
+          started_at AS "startedAt",
+          last_progress_at AS "lastProgressAt",
+          completed_at AS "completedAt"
+
+        FROM delivery_routes
+        WHERE order_id = $1
+        ORDER BY id DESC
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [order.id]
+    );
+
+    // ------------------------------------------------------------
+    // 3. Если маршрута нет.
+    // ------------------------------------------------------------
+
+    if (routeResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+
+      if (order.status === "completed") {
+        return res.json({
+          status: "completed",
+          completed: true,
+          route: null,
+        });
+      }
+
+      return res.status(409).json({
+        message: "Delivery route not found",
+      });
+    }
+
+    const route = routeResult.rows[0];
+
+    // ------------------------------------------------------------
+    // ВАЖНО:
+    //
+    // Backend хранит полный path в PostgreSQL,
+    // но НЕ отправляет его обратно на каждый progress request.
+    //
+    // Frontend уже имеет path из deliveryRoute.
+    // ------------------------------------------------------------
+
+    const createProgressRoute = () => ({
+      id: route.id,
+
+      orderId: route.orderId,
+
+      vehicleId: route.vehicleId,
+
+      driverId: route.driverId,
+
+      currentPathIndex:
+        Number(route.currentPathIndex) || 0,
+
+      startedAt:
+        route.startedAt,
+
+      lastProgressAt:
+        route.lastProgressAt,
+
+      completedAt:
+        route.completedAt,
+    });
+
+    // ------------------------------------------------------------
+    // 4. Если заказ уже завершён — ничего не двигаем.
+    //
+    // Это также делает endpoint идемпотентным.
+    // ------------------------------------------------------------
+
+    if (
+      order.status === "completed" ||
+      route.completedAt
+    ) {
+      await client.query("COMMIT");
+
+      return res.json({
+        status: "completed",
+        completed: true,
+        route:
+          createProgressRoute(),
+      });
+    }
+
+    // ------------------------------------------------------------
+    // 5. Двигать можно только активную доставку.
+    // ------------------------------------------------------------
+
+    if (
+      order.status !== "in-progress"
+    ) {
+      await client.query("ROLLBACK");
+
+      return res.status(409).json({
+        message:
+          `Order is not in-progress: ${order.status}`,
+      });
+    }
+
+    // ------------------------------------------------------------
+    // 6. Получаем path только внутри backend.
+    //
+    // Он нужен для расчёта следующего индекса,
+    // но больше никогда не отправляется клиенту
+    // через этот endpoint.
+    // ------------------------------------------------------------
+
+    const path =
+      route.path as [number, number][];
+
+    if (
+      !Array.isArray(path) ||
+      path.length === 0
+    ) {
+      await client.query("ROLLBACK");
+
+      return res.status(500).json({
+        message:
+          "Delivery route has an empty path",
+      });
+    }
+
+    // ------------------------------------------------------------
+    // 7. Считаем, сколько времени прошло.
+    //
+    // Один шаг = 700 мс.
+    //
+    // Благодаря этому после sleep/wake backend
+    // догоняет маршрут от сохранённого состояния.
+    // ------------------------------------------------------------
+
+    const STEP_INTERVAL_MS = 700;
+
+    const lastProgressAt =
+      new Date(
+        route.lastProgressAt
+      ).getTime();
+
+    const now = Date.now();
+
+    const elapsedMs = Math.max(
+      0,
+      now - lastProgressAt
+    );
+
+    const elapsedSteps =
+      Math.floor(
+        elapsedMs /
+          STEP_INTERVAL_MS
+      );
+
+    // ------------------------------------------------------------
+    // Если ещё не прошло 700 мс,
+    // просто возвращаем компактное текущее состояние.
+    // ------------------------------------------------------------
+
+    if (elapsedSteps <= 0) {
+      await client.query("COMMIT");
+
+      return res.json({
+        status: "in-progress",
+        completed: false,
+        route:
+          createProgressRoute(),
+      });
+    }
+
+    // ------------------------------------------------------------
+    // 8. Backend сам вычисляет новую точку.
+    //
+    // Клиент НЕ передаёт currentPathIndex.
+    // ------------------------------------------------------------
+
+    const currentPathIndex =
+      Number(
+        route.currentPathIndex
+      ) || 0;
+
+    const nextPathIndex =
+      Math.min(
+        currentPathIndex +
+          elapsedSteps,
+        path.length - 1
+      );
+
+    const consumedSteps =
+      nextPathIndex -
+      currentPathIndex;
+
+    const isCompleted =
+      nextPathIndex >=
+      path.length - 1;
+
+    const nextPoint =
+      path[nextPathIndex];
+
+    // ------------------------------------------------------------
+    // 9. Не теряем остаток времени.
+    //
+    // Например:
+    // прошло 1500 мс
+    // использовали 2 шага = 1400 мс
+    // 100 мс остаются до следующего шага.
+    // ------------------------------------------------------------
+
+    const nextProgressAt =
+      new Date(
+        lastProgressAt +
+          consumedSteps *
+            STEP_INTERVAL_MS
+      );
+
+    // ------------------------------------------------------------
+    // 10. Обновляем маршрут.
+    //
+    // completed_path продолжает храниться в PostgreSQL,
+    // потому что это источник истины.
+    //
+    // Но completed_path НЕ отправляется клиенту
+    // через этот endpoint.
+    // ------------------------------------------------------------
+
+    const completedPath =
+      path.slice(
+        0,
+        nextPathIndex + 1
+      );
+
+    if (isCompleted) {
+      await client.query(
+        `
+          UPDATE delivery_routes
+          SET
+            current_path_index = $1,
+            completed_path = $2::jsonb,
+            last_progress_at = $3,
+            completed_at = NOW()
+          WHERE id = $4
+        `,
+        [
+          nextPathIndex,
+
+          JSON.stringify(
+            completedPath
+          ),
+
+          nextProgressAt,
+
+          route.id,
+        ]
+      );
+
+      // ----------------------------------------------------------
+      // 11. Завершаем заказ.
+      // ----------------------------------------------------------
+
+      await client.query(
+        `
+          UPDATE orders
+          SET status = 'completed'
+          WHERE id = $1
+        `,
+        [order.id]
+      );
+
+      // ----------------------------------------------------------
+      // 12. Освобождаем машину.
+      // ----------------------------------------------------------
+
+      await client.query(
+        `
+          UPDATE vehicles
+          SET
+            status = 'idle',
+            lat = $1,
+            lng = $2,
+            speed_kmh = 0,
+            telemetry_updated_at = NOW()
+          WHERE id = $3
+        `,
+        [
+          nextPoint[1],
+          nextPoint[0],
+          order.vehicleId,
+        ]
+      );
+
+      // ----------------------------------------------------------
+      // 13. Освобождаем водителя.
+      // ----------------------------------------------------------
+
+      await client.query(
+        `
+          UPDATE drivers
+          SET status = 'available'
+          WHERE id = $1
+        `,
+        [order.driverId]
+      );
+    } else {
+      // ----------------------------------------------------------
+      // Обычное движение.
+      // ----------------------------------------------------------
+
+      await client.query(
+        `
+          UPDATE delivery_routes
+          SET
+            current_path_index = $1,
+            completed_path = $2::jsonb,
+            last_progress_at = $3
+          WHERE id = $4
+        `,
+        [
+          nextPathIndex,
+
+          JSON.stringify(
+            completedPath
+          ),
+
+          nextProgressAt,
+
+          route.id,
+        ]
+      );
+
+      // ----------------------------------------------------------
+      // Обновляем телеметрию машины.
+      // ----------------------------------------------------------
+
+      await client.query(
+        `
+          UPDATE vehicles
+          SET
+            lat = $1,
+            lng = $2,
+            status = 'on-route',
+            telemetry_updated_at = NOW()
+          WHERE id = $3
+        `,
+        [
+          nextPoint[1],
+          nextPoint[0],
+          order.vehicleId,
+        ]
+      );
+    }
+
+    // ------------------------------------------------------------
+    // 14. Получаем только актуальное состояние ПРОГРЕССА.
+    //
+    // ВАЖНО:
+    // Здесь специально НЕТ:
+    //   path
+    //   completedPath
+    //   start
+    //   finish
+    //
+    // Они уже есть у frontend.
+    // ------------------------------------------------------------
+
+    const updatedRouteResult =
+      await client.query(
+        `
+          SELECT
+            id,
+            order_id AS "orderId",
+            vehicle_id AS "vehicleId",
+            driver_id AS "driverId",
+
+            current_path_index AS "currentPathIndex",
+
+            started_at AS "startedAt",
+            last_progress_at AS "lastProgressAt",
+            completed_at AS "completedAt"
+
+          FROM delivery_routes
+          WHERE id = $1
+        `,
+        [route.id]
+      );
+
+    const updatedRoute =
+      updatedRouteResult.rows[0];
+
+    await client.query("COMMIT");
+
+    return res.json({
+      status:
+        isCompleted
+          ? "completed"
+          : "in-progress",
+
+      completed:
+        isCompleted,
+
+      route:
+        updatedRoute,
+    });
+  } catch (error) {
+    try {
+      await client.query(
+        "ROLLBACK"
+      );
+    } catch {
+      // ignore rollback error
+    }
+
+    console.error(
+      "Failed to advance delivery progress:",
+      error
+    );
+
+    return res.status(500).json({
+      message:
+        "Failed to advance delivery progress",
+    });
+  } finally {
+    client.release();
+  }
+});
+
 app.get("/api/delivery-routes", async (_req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT
-        id,
-        order_id AS "orderId",
-        vehicle_id AS "vehicleId",
-        driver_id AS "driverId",
-        start_lat AS "startLat",
-        start_lng AS "startLng",
-        finish_lat AS "finishLat",
-        finish_lng AS "finishLng",
-        path,
-        started_at AS "startedAt",
-        completed_at AS "completedAt"
-      FROM delivery_routes
-      ORDER BY completed_at DESC NULLS LAST
-    `);
+    const result = await pool.query(
+      `
+        SELECT
+          id,
+          order_id AS "orderId",
+          vehicle_id AS "vehicleId",
+          driver_id AS "driverId",
+
+          start_lat AS "startLat",
+          start_lng AS "startLng",
+
+          finish_lat AS "finishLat",
+          finish_lng AS "finishLng",
+
+          path,
+          current_path_index AS "currentPathIndex",
+
+          started_at AS "startedAt",
+          last_progress_at AS "lastProgressAt",
+          completed_at AS "completedAt"
+
+        FROM delivery_routes
+
+        WHERE completed_at IS NULL
+
+        ORDER BY id
+      `
+    );
 
     return res.json(result.rows);
   } catch (error) {

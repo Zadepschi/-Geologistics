@@ -1,14 +1,22 @@
 import { Card } from "@/shared/ui/card/Card";
+
 import { useEffect, useState } from "react";
+
 import type { Driver } from "@/entities/driver";
+
 import {
   archiveDriver,
   fetchDrivers,
 } from "@/shared/api/drivers";
+
 import type { Order } from "@/entities/order";
+
 import { fetchOrders } from "@/shared/api/orders";
+
 import { useFleetStore } from "@/shared/store/fleet";
+
 import styles from "./DriversList.module.scss";
+
 import { DriverDeleteModal } from "@/pages/drivers/ui/DriverDeleteModal";
 
 const getRouteStatus = (
@@ -58,9 +66,16 @@ export const DriversList = ({
     (state) => state.vehicles
   );
 
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>(
+    []
+  );
+
+  const [orders, setOrders] = useState<Order[]>(
+    []
+  );
+
   const [search, setSearch] = useState("");
+
   const [view, setView] =
     useState<DriverView>("active");
 
@@ -110,7 +125,8 @@ export const DriversList = ({
       return false;
     }
 
-    const query = search.trim().toLowerCase();
+    const query =
+      search.trim().toLowerCase();
 
     if (!query) {
       return true;
@@ -143,10 +159,11 @@ export const DriversList = ({
     setArchiveError("");
 
     try {
-      const updatedDriver = await archiveDriver(
-        driverToArchive.id,
-        !driverToArchive.isArchived
-      );
+      const updatedDriver =
+        await archiveDriver(
+          driverToArchive.id,
+          !driverToArchive.isArchived
+        );
 
       setDrivers((current) =>
         current.map((driver) =>
@@ -202,7 +219,9 @@ export const DriversList = ({
 
             <button
               type="button"
-              onClick={() => setView("archived")}
+              onClick={() =>
+                setView("archived")
+              }
               className={
                 view === "archived"
                   ? styles.tabActive
@@ -239,30 +258,6 @@ export const DriversList = ({
                 )
             );
 
-
-if (driver.name === "Bobo") {
-  const boboOrders = orders
-    .filter(
-      (order) =>
-        order.driverId === driver.id
-    )
-    .map((order) => ({
-      id: order.id,
-      status: order.status,
-      vehicleId: order.vehicleId,
-    }));
-
-  console.log(
-    "[DriversList] Bobo diagnostic:",
-    {
-      driverId: driver.id,
-      driverStatus: driver.status,
-      driverVehicleId: driver.vehicleId,
-      activeOrder,
-      boboOrders,
-    }
-  );
-}
             const orderVehicle = activeOrder
               ? vehicles.find(
                   (vehicle) =>
@@ -271,25 +266,30 @@ if (driver.name === "Bobo") {
                 )
               : undefined;
 
-  
+            const assignedVehicle =
+              orderVehicle;
 
-           const assignedVehicle = orderVehicle;
+            const routeStatus =
+              getRouteStatus(
+                assignedVehicle?.route
+                  ?.deliveryCompleted,
+                Boolean(
+                  assignedVehicle?.route
+                )
+              );
 
-            const routeStatus = getRouteStatus(
-              assignedVehicle?.route
-                ?.deliveryCompleted,
-              Boolean(assignedVehicle?.route)
-            );
+            const driverDisplayStatus =
+              getDriverDisplayStatus(
+                driver,
+                activeOrder
+              );
 
-    const driverDisplayStatus =
-  getDriverDisplayStatus(
-    driver,
-    activeOrder
-  );
             return (
               <div
                 key={driver.id}
-                className={styles.driverCard}
+                className={
+                  styles.driverCard
+                }
               >
                 <div className={styles.main}>
                   <div>
@@ -298,7 +298,9 @@ if (driver.name === "Bobo") {
                   </div>
 
                   <span
-                    className={styles.status}
+                    className={
+                      styles.status
+                    }
                   >
                     {driverDisplayStatus}
                   </span>
@@ -329,7 +331,8 @@ if (driver.name === "Bobo") {
                     <span>Speed</span>
 
                     <strong>
-                      {assignedVehicle?.telemetry
+                      {assignedVehicle
+                        ?.telemetry
                         .speedKmH ?? 0}{" "}
                       km/h
                     </strong>
@@ -344,7 +347,9 @@ if (driver.name === "Bobo") {
                   </div>
                 </div>
 
-                <div className={styles.actions}>
+                <div
+                  className={styles.actions}
+                >
                   {view === "active" && (
                     <button
                       type="button"
@@ -365,7 +370,9 @@ if (driver.name === "Bobo") {
                       styles.deleteButton
                     }
                     onClick={() =>
-                      handleArchiveClick(driver)
+                      handleArchiveClick(
+                        driver
+                      )
                     }
                   >
                     {driver.isArchived
@@ -400,7 +407,9 @@ if (driver.name === "Bobo") {
         isArchived={
           driverToArchive?.isArchived ?? false
         }
-        open={driverToArchive !== null}
+        open={
+          driverToArchive !== null
+        }
         loading={isArchiving}
         error={archiveError}
         onClose={() => {

@@ -1,24 +1,35 @@
 import { useEffect, useRef, useState } from "react";
+
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 import { Card } from "@/shared/ui/card/Card";
+
 import type { Order } from "@/entities/order";
-import {
-  fetchOrders,
-} from "@/shared/api/orders";
+
+import { fetchOrders } from "@/shared/api/orders";
+
 import { useFleetStore } from "@/shared/store/fleet";
+
+import { useLoadVehicles } from "@/features/fleet/model/useLoadVehicles";
+import { useLiveTracking } from "@/features/live-tracking/model/useLiveTracking";
+
 import { useOrdersLayerStore } from "@/features/toggle-orders-layer/model/store";
 import { useMapThemeStore } from "@/features/switch-map-theme/model/store";
 import { useClustersStore } from "@/features/switch-clusters/model/store";
+
 import type { Vehicle } from "@/entities/vehicle/model/types";
 
 import styles from "./TrackingMap.module.scss";
 
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
+mapboxgl.accessToken =
+  import.meta.env.VITE_MAPBOX_TOKEN;
 
-const routeSourceId = "selected-vehicle-route";
-const routeLayerId = "selected-vehicle-route-line";
+const routeSourceId =
+  "selected-vehicle-route";
+
+const routeLayerId =
+  "selected-vehicle-route-line";
 
 const completedRouteSourceId =
   "selected-vehicle-route-completed";
@@ -26,13 +37,21 @@ const completedRouteSourceId =
 const completedRouteLayerId =
   "selected-vehicle-route-completed-line";
 
-const ordersSourceId = "orders-source";
-const ordersLayerId = "orders-layer";
-const ordersClusterLayerId = "orders-clusters";
+const ordersSourceId =
+  "orders-source";
+
+const ordersLayerId =
+  "orders-layer";
+
+const ordersClusterLayerId =
+  "orders-clusters";
+
 const ordersClusterCountLayerId =
   "orders-cluster-count";
 
-const resetMapCursor = (map: mapboxgl.Map) => {
+const resetMapCursor = (
+  map: mapboxgl.Map
+) => {
   try {
     const canvas = map.getCanvas();
 
@@ -44,7 +63,9 @@ const resetMapCursor = (map: mapboxgl.Map) => {
   }
 };
 
-const setMapPointerCursor = (map: mapboxgl.Map) => {
+const setMapPointerCursor = (
+  map: mapboxgl.Map
+) => {
   try {
     const canvas = map.getCanvas();
 
@@ -126,9 +147,11 @@ const getVehicleOrder = (
   vehicle: Vehicle,
   orders: Order[]
 ) => {
-  const assignedOrders = orders.filter(
-    (order) => order.vehicleId === vehicle.id
-  );
+  const assignedOrders =
+    orders.filter(
+      (order) =>
+        order.vehicleId === vehicle.id
+    );
 
   if (assignedOrders.length === 0) {
     return null;
@@ -136,7 +159,8 @@ const getVehicleOrder = (
 
   return (
     assignedOrders.find(
-      (order) => order.status !== "completed"
+      (order) =>
+        order.status !== "completed"
     ) ?? assignedOrders[0]
   );
 };
@@ -145,7 +169,8 @@ const createOrderPopupContent = (
   vehicle: Vehicle,
   order: Order | null
 ) => {
-  const container = document.createElement("div");
+  const container =
+    document.createElement("div");
 
   container.className =
     styles.orderPopupContent;
@@ -199,9 +224,7 @@ const createOrderPopupContent = (
   const vehicleSpeedValue =
     document.createElement("strong");
 
-  vehicleSpeedValue.textContent = `${
-    vehicle.telemetry.speedKmH ?? 0
-  } km/h`;
+  vehicleSpeedValue.textContent = `${vehicle.telemetry.speedKmH ?? 0} km/h`;
 
   vehicleSpeed.append(
     vehicleSpeedLabel,
@@ -325,20 +348,48 @@ const createOrderPopupContent = (
 };
 
 export const TrackingMap = () => {
+  /*
+   * PostgreSQL is the source of truth.
+   *
+   * useLoadVehicles:
+   * - loads vehicles;
+   * - loads orders;
+   * - restores persisted delivery routes;
+   * - restores currentPathIndex;
+   * - restores completedPath.
+   *
+   * useLiveTracking:
+   * - asks backend for progress;
+   * - backend calculates progress from lastProgressAt;
+   * - frontend does not increment currentPathIndex itself.
+   */
+  useLoadVehicles();
+  useLiveTracking();
+
   const mapContainerRef =
-    useRef<HTMLDivElement | null>(null);
+    useRef<HTMLDivElement | null>(
+      null
+    );
 
   const mapRef =
-    useRef<mapboxgl.Map | null>(null);
+    useRef<mapboxgl.Map | null>(
+      null
+    );
 
   const startMarkerRef =
-    useRef<mapboxgl.Marker | null>(null);
+    useRef<mapboxgl.Marker | null>(
+      null
+    );
 
   const finishMarkerRef =
-    useRef<mapboxgl.Marker | null>(null);
+    useRef<mapboxgl.Marker | null>(
+      null
+    );
 
   const orderPopupRef =
-    useRef<mapboxgl.Popup | null>(null);
+    useRef<mapboxgl.Popup | null>(
+      null
+    );
 
   const focusedVehicleIdRef =
     useRef<string | null>(null);
@@ -361,14 +412,9 @@ export const TrackingMap = () => {
   const [orders, setOrders] =
     useState<Order[]>([]);
 
-
   const vehicles = useFleetStore(
     (s) => s.vehicles
   );
-  
-  const setVehicles = useFleetStore(
-  (s) => s.setVehicles
-);
 
   const selectedVehicleId =
     useFleetStore(
@@ -393,13 +439,15 @@ export const TrackingMap = () => {
   const selectedVehicle =
     vehicles.find(
       (vehicle) =>
-        vehicle.id === selectedVehicleId
+        vehicle.id ===
+        selectedVehicleId
     ) ?? null;
 
-    
-    
-  vehiclesRef.current = vehicles;
-  ordersRef.current = orders;
+  vehiclesRef.current =
+    vehicles;
+
+  ordersRef.current =
+    orders;
 
   const clearSelectedRoute = (
     map: mapboxgl.Map
@@ -408,7 +456,9 @@ export const TrackingMap = () => {
       map.removeLayer(routeLayerId);
     }
 
-    if (map.getSource(routeSourceId)) {
+    if (
+      map.getSource(routeSourceId)
+    ) {
       map.removeSource(routeSourceId);
     }
 
@@ -450,102 +500,6 @@ export const TrackingMap = () => {
         );
       });
   }, []);
-
-// Восстанавливаем активные маршруты из БД.
-useEffect(() => {
-  let cancelled = false;
-
-  const loadActiveRoutes = async () => {
-    try {
-      const response = await fetch(
-        "/api/delivery-routes"
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          "Failed to load delivery routes"
-        );
-      }
-
-      const routes = await response.json();
-
-      if (cancelled) {
-        return;
-      }
-
-      const activeRoutes = routes.filter(
-        (route: {
-          vehicleId: string;
-          completedAt: string | null;
-          path: [number, number][];
-        }) =>
-          route.completedAt === null &&
-          route.path?.length >= 2
-      );
-
-      if (activeRoutes.length === 0) {
-        return;
-      }
-
-      setVehicles(
-        vehicles.map((vehicle) => {
-          const route = activeRoutes.find(
-            (item: {
-              vehicleId: string;
-              startLat: number;
-              startLng: number;
-              finishLat: number;
-              finishLng: number;
-              path: [number, number][];
-            }) =>
-              item.vehicleId === vehicle.id
-          );
-
-          if (!route) {
-            return vehicle;
-          }
-
-          return {
-            ...vehicle,
-            status: "on-route",
-route: {
-  start: [
-    route.startLng,
-    route.startLat,
-  ],
-  finish: [
-    route.finishLng,
-    route.finishLat,
-  ],
-  path: route.path,
-  completedPath:
-    vehicle.route?.completedPath ?? [
-      route.path[0],
-    ],
-  currentPathIndex:
-    vehicle.route?.currentPathIndex ?? 0,
-  deliveryCompleted:
-    vehicle.route?.deliveryCompleted ?? false,
-  etaMinutes:
-    vehicle.route?.etaMinutes,
-},
-          };
-        })
-      );
-    } catch (error) {
-      console.error(
-        "Failed to restore active delivery routes:",
-        error
-      );
-    }
-  };
-
-  loadActiveRoutes();
-
-  return () => {
-    cancelled = true;
-  };
-}, []);
 
   // Инициализация карты.
   useEffect(() => {
@@ -790,96 +744,96 @@ route: {
     styleVersion,
   ]);
 
- // Обновляем состояние кластеров после переключения.
-useEffect(() => {
-  const map = mapRef.current;
+  // Обновляем состояние кластеров после переключения.
+  useEffect(() => {
+    const map = mapRef.current;
 
-  if (!map || !isMapLoaded) {
-    return;
-  }
+    if (!map || !isMapLoaded) {
+      return;
+    }
 
-  const source = map.getSource(
-    ordersSourceId
-  ) as
-    | mapboxgl.GeoJSONSource
-    | undefined;
+    const source = map.getSource(
+      ordersSourceId
+    ) as
+      | mapboxgl.GeoJSONSource
+      | undefined;
 
-  if (!source) {
-    return;
-  }
+    if (!source) {
+      return;
+    }
 
-  const data = {
-    type: "FeatureCollection" as const,
-    features: vehicles.map(
-      (vehicle) => ({
-        type: "Feature" as const,
-        properties: {
-          vehicleId: vehicle.id,
-          vehicleName: vehicle.name,
-        },
-        geometry: {
-          type: "Point" as const,
-          coordinates: [
-            vehicle.telemetry.lng,
-            vehicle.telemetry.lat,
-          ],
-        },
-      })
-    ),
-  };
+    const data = {
+      type: "FeatureCollection" as const,
+      features: vehicles.map(
+        (vehicle) => ({
+          type: "Feature" as const,
+          properties: {
+            vehicleId: vehicle.id,
+            vehicleName: vehicle.name,
+          },
+          geometry: {
+            type: "Point" as const,
+            coordinates: [
+              vehicle.telemetry.lng,
+              vehicle.telemetry.lat,
+            ],
+          },
+        })
+      ),
+    };
 
-  source.setData(data);
+    source.setData(data);
 
-  if (
-    map.getLayer(
-      ordersLayerId
-    )
-  ) {
-    map.setLayoutProperty(
-      ordersLayerId,
-      "visibility",
-      isOrdersVisible
-        ? "visible"
-        : "none"
-    );
-  }
+    if (
+      map.getLayer(
+        ordersLayerId
+      )
+    ) {
+      map.setLayoutProperty(
+        ordersLayerId,
+        "visibility",
+        isOrdersVisible
+          ? "visible"
+          : "none"
+      );
+    }
 
-  if (
-    map.getLayer(
-      ordersClusterLayerId
-    )
-  ) {
-    map.setLayoutProperty(
-      ordersClusterLayerId,
-      "visibility",
-      isOrdersVisible &&
-        clustersEnabled
-        ? "visible"
-        : "none"
-    );
-  }
+    if (
+      map.getLayer(
+        ordersClusterLayerId
+      )
+    ) {
+      map.setLayoutProperty(
+        ordersClusterLayerId,
+        "visibility",
+        isOrdersVisible &&
+          clustersEnabled
+          ? "visible"
+          : "none"
+      );
+    }
 
-  if (
-    map.getLayer(
-      ordersClusterCountLayerId
-    )
-  ) {
-    map.setLayoutProperty(
-      ordersClusterCountLayerId,
-      "visibility",
-      isOrdersVisible &&
-        clustersEnabled
-        ? "visible"
-        : "none"
-    );
-  }
-}, [
-  vehicles,
-  clustersEnabled,
-  isOrdersVisible,
-  isMapLoaded,
-  styleVersion,
-]);
+    if (
+      map.getLayer(
+        ordersClusterCountLayerId
+      )
+    ) {
+      map.setLayoutProperty(
+        ordersClusterCountLayerId,
+        "visibility",
+        isOrdersVisible &&
+          clustersEnabled
+          ? "visible"
+          : "none"
+      );
+    }
+  }, [
+    vehicles,
+    clustersEnabled,
+    isOrdersVisible,
+    isMapLoaded,
+    styleVersion,
+  ]);
 
   // Tooltip для жёлтых точек.
   useEffect(() => {
@@ -991,251 +945,253 @@ useEffect(() => {
     styleVersion,
   ]);
 
-// Полный маршрут выбранного автомобиля.
-useEffect(() => {
-  const map = mapRef.current;
+  // Полный маршрут выбранного автомобиля.
+  useEffect(() => {
+    const map = mapRef.current;
 
-  if (!map || !isMapLoaded) {
-    return;
-  }
+    if (!map || !isMapLoaded) {
+      return;
+    }
 
-  if (!selectedVehicle) {
-    clearSelectedRoute(map);
+    if (!selectedVehicle) {
+      clearSelectedRoute(map);
 
-    focusedVehicleIdRef.current = null;
+      focusedVehicleIdRef.current =
+        null;
 
-    return;
-  }
+      return;
+    }
 
-  // Завершённый маршрут больше не показываем
-  // на оперативной карте.
-  if (
-    selectedVehicle.route?.deliveryCompleted === true
-  ) {
-    clearSelectedRoute(map);
+    // Завершённый маршрут больше не показываем
+    // на оперативной карте.
+    if (
+      selectedVehicle.route
+        ?.deliveryCompleted === true
+    ) {
+      clearSelectedRoute(map);
+
+      focusedVehicleIdRef.current =
+        selectedVehicle.id;
+
+      return;
+    }
+
+    const routePath =
+      selectedVehicle.route?.path ?? [];
+
+    if (routePath.length < 2) {
+      clearSelectedRoute(map);
+      return;
+    }
+
+    const fullRouteData =
+      toLineFeature(routePath);
+
+    const fullRouteSource =
+      map.getSource(
+        routeSourceId
+      ) as
+        | mapboxgl.GeoJSONSource
+        | undefined;
+
+    if (fullRouteSource) {
+      fullRouteSource.setData(
+        fullRouteData
+      );
+    } else {
+      map.addSource(routeSourceId, {
+        type: "geojson",
+        data: fullRouteData,
+      });
+
+      map.addLayer({
+        id: routeLayerId,
+        type: "line",
+        source: routeSourceId,
+        layout: {
+          "line-cap": "round",
+          "line-join": "round",
+        },
+        paint: {
+          "line-width": 4,
+          "line-color": "#60a5fa",
+          "line-opacity": 0.35,
+        },
+      });
+    }
+
+    startMarkerRef.current?.remove();
+    finishMarkerRef.current?.remove();
+
+    if (selectedVehicle.route?.start) {
+      startMarkerRef.current =
+        new mapboxgl.Marker(
+          createRoutePointElement(
+            "start",
+            selectedVehicle.type
+          )
+        )
+          .setLngLat(
+            selectedVehicle.route.start
+          )
+          .addTo(map);
+    }
+
+    if (selectedVehicle.route?.finish) {
+      finishMarkerRef.current =
+        new mapboxgl.Marker(
+          createRoutePointElement(
+            "finish",
+            selectedVehicle.type
+          )
+        )
+          .setLngLat(
+            selectedVehicle.route.finish
+          )
+          .addTo(map);
+    }
+
+    const shouldFocusSelectedVehicle =
+      focusedVehicleIdRef.current !==
+      selectedVehicle.id;
 
     focusedVehicleIdRef.current =
       selectedVehicle.id;
 
-    return;
-  }
+    if (shouldFocusSelectedVehicle) {
+      map.easeTo({
+        center: [
+          selectedVehicle.telemetry.lng,
+          selectedVehicle.telemetry.lat,
+        ],
+        zoom: 13,
+        duration: 700,
+      });
+    }
+  }, [
+    selectedVehicleId,
+    selectedVehicle?.route?.path,
+    selectedVehicle?.route?.start,
+    selectedVehicle?.route?.finish,
+    selectedVehicle?.route?.deliveryCompleted,
+    isMapLoaded,
+    styleVersion,
+  ]);
 
-  const routePath =
-    selectedVehicle.route?.path ?? [];
+  // Прогресс выбранного маршрута.
+  useEffect(() => {
+    const map = mapRef.current;
 
-  if (routePath.length < 2) {
-    clearSelectedRoute(map);
-    return;
-  }
+    if (
+      !map ||
+      !isMapLoaded ||
+      !selectedVehicle
+    ) {
+      return;
+    }
 
-  const fullRouteData =
-    toLineFeature(routePath);
+    // Завершённый маршрут больше не является
+    // частью оперативного Tracking.
+    if (
+      selectedVehicle.route
+        ?.deliveryCompleted === true
+    ) {
+      if (
+        map.getLayer(
+          completedRouteLayerId
+        )
+      ) {
+        map.removeLayer(
+          completedRouteLayerId
+        );
+      }
 
-  const fullRouteSource =
-    map.getSource(routeSourceId) as
-      | mapboxgl.GeoJSONSource
-      | undefined;
+      if (
+        map.getSource(
+          completedRouteSourceId
+        )
+      ) {
+        map.removeSource(
+          completedRouteSourceId
+        );
+      }
 
-  if (fullRouteSource) {
-    fullRouteSource.setData(
-      fullRouteData
+      return;
+    }
+
+    const completedPath =
+      selectedVehicle.route
+        ?.completedPath ?? [];
+
+    if (completedPath.length < 2) {
+      if (
+        map.getLayer(
+          completedRouteLayerId
+        )
+      ) {
+        map.removeLayer(
+          completedRouteLayerId
+        );
+      }
+
+      if (
+        map.getSource(
+          completedRouteSourceId
+        )
+      ) {
+        map.removeSource(
+          completedRouteSourceId
+        );
+      }
+
+      return;
+    }
+
+    const completedRouteData =
+      toLineFeature(completedPath);
+
+    const completedRouteSource =
+      map.getSource(
+        completedRouteSourceId
+      ) as
+        | mapboxgl.GeoJSONSource
+        | undefined;
+
+    if (completedRouteSource) {
+      completedRouteSource.setData(
+        completedRouteData
+      );
+
+      return;
+    }
+
+    map.addSource(
+      completedRouteSourceId,
+      {
+        type: "geojson",
+        data: completedRouteData,
+      }
     );
-  } else {
-    map.addSource(routeSourceId, {
-      type: "geojson",
-      data: fullRouteData,
-    });
 
     map.addLayer({
-      id: routeLayerId,
+      id: completedRouteLayerId,
       type: "line",
-      source: routeSourceId,
+      source:
+        completedRouteSourceId,
       layout: {
         "line-cap": "round",
         "line-join": "round",
       },
       paint: {
-        "line-width": 4,
-        "line-color": "#60a5fa",
-        "line-opacity": 0.35,
+        "line-width": 5,
+        "line-color": "#2563eb",
       },
     });
-  }
-
-  startMarkerRef.current?.remove();
-  finishMarkerRef.current?.remove();
-
-  if (selectedVehicle.route?.start) {
-    startMarkerRef.current =
-      new mapboxgl.Marker(
-        createRoutePointElement(
-          "start",
-          selectedVehicle.type
-        )
-      )
-        .setLngLat(
-          selectedVehicle.route.start
-        )
-        .addTo(map);
-  }
-
-  if (selectedVehicle.route?.finish) {
-    finishMarkerRef.current =
-      new mapboxgl.Marker(
-        createRoutePointElement(
-          "finish",
-          selectedVehicle.type
-        )
-      )
-        .setLngLat(
-          selectedVehicle.route.finish
-        )
-        .addTo(map);
-  }
-
-  const shouldFocusSelectedVehicle =
-    focusedVehicleIdRef.current !==
-    selectedVehicle.id;
-
-  focusedVehicleIdRef.current =
-    selectedVehicle.id;
-
-  if (shouldFocusSelectedVehicle) {
-    map.easeTo({
-      center: [
-        selectedVehicle.telemetry.lng,
-        selectedVehicle.telemetry.lat,
-      ],
-      zoom: 13,
-      duration: 700,
-    });
-  }
-}, [
-  selectedVehicleId,
-  selectedVehicle?.route?.path,
-  selectedVehicle?.route?.start,
-  selectedVehicle?.route?.finish,
-  selectedVehicle?.route?.deliveryCompleted,
-  isMapLoaded,
-  styleVersion,
-]);
-
-
-
-
-// Прогресс выбранного маршрута.
-useEffect(() => {
-  const map = mapRef.current;
-
-  if (
-    !map ||
-    !isMapLoaded ||
-    !selectedVehicle
-  ) {
-    return;
-  }
-
-  // Завершённый маршрут больше не является
-  // частью оперативного Tracking.
-  if (
-    selectedVehicle.route?.deliveryCompleted === true
-  ) {
-    if (
-      map.getLayer(
-        completedRouteLayerId
-      )
-    ) {
-      map.removeLayer(
-        completedRouteLayerId
-      );
-    }
-
-    if (
-      map.getSource(
-        completedRouteSourceId
-      )
-    ) {
-      map.removeSource(
-        completedRouteSourceId
-      );
-    }
-
-    return;
-  }
-
-  const completedPath =
-    selectedVehicle.route
-      ?.completedPath ?? [];
-
-  if (completedPath.length < 2) {
-    if (
-      map.getLayer(
-        completedRouteLayerId
-      )
-    ) {
-      map.removeLayer(
-        completedRouteLayerId
-      );
-    }
-
-    if (
-      map.getSource(
-        completedRouteSourceId
-      )
-    ) {
-      map.removeSource(
-        completedRouteSourceId
-      );
-    }
-
-    return;
-  }
-
-  const completedRouteData =
-    toLineFeature(completedPath);
-
-  const completedRouteSource =
-    map.getSource(
-      completedRouteSourceId
-    ) as
-      | mapboxgl.GeoJSONSource
-      | undefined;
-
-  if (completedRouteSource) {
-    completedRouteSource.setData(
-      completedRouteData
-    );
-
-    return;
-  }
-
-  map.addSource(
-    completedRouteSourceId,
-    {
-      type: "geojson",
-      data: completedRouteData,
-    }
-  );
-
-  map.addLayer({
-    id: completedRouteLayerId,
-    type: "line",
-    source:
-      completedRouteSourceId,
-    layout: {
-      "line-cap": "round",
-      "line-join": "round",
-    },
-    paint: {
-      "line-width": 5,
-      "line-color": "#2563eb",
-    },
-  });
-}, [
-  selectedVehicle,
-  isMapLoaded,
-  styleVersion,
-]);
+  }, [
+    selectedVehicle,
+    isMapLoaded,
+    styleVersion,
+  ]);
 
   return (
     <Card className={styles.map}>

@@ -1,6 +1,11 @@
-import type { Order, OrderStatus } from "@/entities/order";
+import type {
+  Order,
+  OrderStatus,
+} from "@/entities/order";
 
-export async function fetchOrders(): Promise<Order[]> {
+export async function fetchOrders(): Promise<
+  Order[]
+> {
   const res = await fetch("/api/orders");
 
   if (!res.ok) {
@@ -15,23 +20,79 @@ export interface DeliveryRoute {
   orderId: string;
   vehicleId: string;
   driverId: string;
+
   startLat: number;
   startLng: number;
+
   finishLat: number;
   finishLng: number;
+
   path: [number, number][];
+
+  currentPathIndex: number;
+  completedPath: [number, number][];
+
   startedAt: string;
+  lastProgressAt: string;
   completedAt: string | null;
 }
 
 export async function fetchDeliveryRoutes(): Promise<
   DeliveryRoute[]
 > {
-  const res = await fetch("/api/delivery-routes");
+  const res = await fetch(
+    "/api/delivery-routes"
+  );
 
   if (!res.ok) {
     throw new Error(
       "Failed to fetch delivery routes"
+    );
+  }
+
+  return res.json();
+}
+
+// ------------------------------------------------------------
+// Продвигаем доставку через backend.
+//
+// ВАЖНО:
+// frontend НЕ передаёт currentPathIndex.
+//
+// Backend сам читает:
+// - current_path_index
+// - last_progress_at
+//
+// из PostgreSQL и вычисляет новую позицию.
+// ------------------------------------------------------------
+
+export interface DeliveryProgressResponse {
+  status:
+    | "in-progress"
+    | "completed";
+
+  completed: boolean;
+
+  route: DeliveryRoute;
+}
+
+export async function advanceOrderProgress(
+  orderId: string
+): Promise<DeliveryProgressResponse> {
+  const res = await fetch(
+    `/api/orders/${orderId}/progress`,
+    {
+      method: "PATCH",
+    }
+  );
+
+  if (!res.ok) {
+    const data =
+      await res.json().catch(() => null);
+
+    throw new Error(
+      data?.message ??
+        `Failed to advance delivery progress: ${res.status}`
     );
   }
 
@@ -49,19 +110,23 @@ export async function updateOrderStatus(
   status: OrderStatus,
   route?: OrderRoutePayload
 ): Promise<Order> {
-  const res = await fetch(`/api/orders/${id}/status`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      status,
-      route,
-    }),
-  });
+  const res = await fetch(
+    `/api/orders/${id}/status`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        status,
+        route,
+      }),
+    }
+  );
 
   if (!res.ok) {
-    const data = await res.json().catch(() => null);
+    const data =
+      await res.json().catch(() => null);
 
     throw new Error(
       data?.message ??
@@ -76,16 +141,22 @@ export async function updateOrderVehicle(
   id: string,
   vehicleId: string
 ): Promise<Order> {
-  const res = await fetch(`/api/orders/${id}/vehicle`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ vehicleId }),
-  });
+  const res = await fetch(
+    `/api/orders/${id}/vehicle`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        vehicleId,
+      }),
+    }
+  );
 
   if (!res.ok) {
-    const data = await res.json().catch(() => null);
+    const data =
+      await res.json().catch(() => null);
 
     throw new Error(
       data?.message ??
@@ -108,16 +179,20 @@ export async function updateOrder(
   id: string,
   payload: UpdateOrderPayload
 ): Promise<Order> {
-  const res = await fetch(`/api/orders/${id}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  const res = await fetch(
+    `/api/orders/${id}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
 
   if (!res.ok) {
-    const data = await res.json().catch(() => null);
+    const data =
+      await res.json().catch(() => null);
 
     throw new Error(
       data?.message ??
@@ -131,12 +206,16 @@ export async function updateOrder(
 export async function deleteOrder(
   id: string
 ): Promise<void> {
-  const res = await fetch(`/api/orders/${id}`, {
-    method: "DELETE",
-  });
+  const res = await fetch(
+    `/api/orders/${id}`,
+    {
+      method: "DELETE",
+    }
+  );
 
   if (!res.ok) {
-    const data = await res.json().catch(() => null);
+    const data =
+      await res.json().catch(() => null);
 
     throw new Error(
       data?.message ??
@@ -158,16 +237,20 @@ export interface CreateOrderPayload {
 export async function createOrder(
   payload: CreateOrderPayload
 ): Promise<Order> {
-  const res = await fetch("/api/orders", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  const res = await fetch(
+    "/api/orders",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
 
   if (!res.ok) {
-    const data = await res.json().catch(() => null);
+    const data =
+      await res.json().catch(() => null);
 
     throw new Error(
       data?.message ??

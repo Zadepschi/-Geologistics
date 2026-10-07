@@ -44,7 +44,6 @@ export const FleetStats = () => {
       <div className={styles.header}>
         <div>
           <h2>Fleet Overview</h2>
-          <p>Current status of your New York delivery fleet</p>
         </div>
 
         <span className={styles.total}>
