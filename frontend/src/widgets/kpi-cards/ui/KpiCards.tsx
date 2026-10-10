@@ -1,3 +1,4 @@
+
 import {
   Truck,
   Package,
@@ -6,11 +7,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { Card } from "@/shared/ui/card/Card";
-import { useFleetStore } from "@/shared/store/fleet";
 import { useEffect, useState } from "react";
+
 import type { Order } from "@/entities/order";
 import { fetchOrders } from "@/shared/api/orders";
+import { Card } from "@/shared/ui/card/Card";
+import { useFleetStore } from "@/shared/store/fleet";
 
 import styles from "./KpiCards.module.scss";
 
@@ -31,39 +33,39 @@ const toneIcons: Record<KpiTone, LucideIcon> = {
 };
 
 export const KpiCards = () => {
-const vehicles = useFleetStore((s) => s.vehicles);
-const [orders, setOrders] = useState<Order[]>([]);
+  const vehicles = useFleetStore((state) => state.vehicles);
 
-useEffect(() => {
-  fetchOrders()
-    .then(setOrders)
-    .catch((error) => {
-      console.error("Failed to load orders", error);
-    });
-}, []);
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchOrders()
+      .then((data) => {
+        if (isMounted) {
+          setOrders(data);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load orders", error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const totalOrders = orders.length;
 
-  const isOrderCompleted = (
-    orderVehicleId: string,
-    orderStatus: string
-  ) => {
-    const vehicle = vehicles.find(
-      (vehicle) => vehicle.id === orderVehicleId
-    );
-
-    return (
-      orderStatus === "completed" ||
-      vehicle?.route?.deliveryCompleted === true
-    );
-  };
-
- const pendingOrders = orders.filter(
-    (order) => !isOrderCompleted(order.vehicleId, order.status)
+  const completedOrders = orders.filter(
+    (order) => order.status === "completed",
   ).length;
 
-  const completedOrders = orders.filter((order) =>
-    isOrderCompleted(order.vehicleId, order.status)
+  const pendingOrders = orders.filter(
+    (order) =>
+      order.status === "assigned" ||
+      order.status === "in-progress" ||
+      order.status === "delayed",
   ).length;
 
   const performance =
@@ -75,25 +77,25 @@ useEffect(() => {
     {
       title: "Vehicles",
       value: String(vehicles.length),
-      change: "+4%",
+      change: "Total fleet",
       tone: "green",
     },
     {
       title: "Orders",
       value: String(totalOrders),
-      change: "+12%",
+      change: "All orders",
       tone: "purple",
     },
     {
       title: "Pending",
       value: String(pendingOrders),
-      change: "-2%",
+      change: "Active workload",
       tone: "yellow",
     },
     {
       title: "Performance",
       value: `${performance}%`,
-      change: "+6%",
+      change: `${completedOrders} completed`,
       tone: "blue",
     },
   ];
@@ -109,9 +111,10 @@ useEffect(() => {
             className={`${styles.card} ${styles[item.tone]}`}
           >
             <div
-              className={`${styles.iconWrap} ${
-                styles[`${item.tone}Icon`]
-              }`}
+              className={[
+                styles.iconWrap,
+                styles[`${item.tone}Icon`],
+              ].join(" ")}
             >
               <Icon size={18} />
             </div>
@@ -125,12 +128,10 @@ useEffect(() => {
                 <div className={styles.value}>
                   {item.value}
                 </div>
+              </div>
 
-                {item.change ? (
-                  <div className={styles.change}>
-                    {item.change}
-                  </div>
-                ) : null}
+              <div className={styles.change}>
+                {item.change}
               </div>
             </div>
           </Card>

@@ -106,9 +106,10 @@ CREATE TABLE delivery_routes (
 
 
 CREATE TABLE notifications (
-  id SERIAL PRIMARY KEY,
-  text TEXT NOT NULL,
-  read BOOLEAN NOT NULL DEFAULT FALSE
+    id SERIAL PRIMARY KEY,
+    text TEXT NOT NULL,
+    read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 
@@ -130,3 +131,29 @@ CREATE INDEX idx_delivery_routes_vehicle_id
 CREATE UNIQUE INDEX ux_delivery_routes_active_order
   ON delivery_routes(order_id)
   WHERE completed_at IS NULL;
+
+
+  -- =========================================================
+-- Recent Activity
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS activity_events (
+  id BIGSERIAL PRIMARY KEY,
+
+  type VARCHAR(50) NOT NULL,
+  title VARCHAR(120) NOT NULL,
+  description TEXT NOT NULL,
+
+  order_id VARCHAR(50)
+    REFERENCES orders(id)
+    ON DELETE SET NULL,
+
+  vehicle_id VARCHAR(50)
+    REFERENCES vehicles(id)
+    ON DELETE SET NULL,
+
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_activity_events_created_at
+  ON activity_events(created_at DESC);

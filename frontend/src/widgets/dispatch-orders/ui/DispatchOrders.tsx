@@ -11,7 +11,6 @@ import { fetchDrivers } from "@/shared/api/drivers";
 import type { Order } from "@/entities/order";
 
 import {
-  deleteOrder,
   fetchOrders,
   updateOrderStatus,
   updateOrderVehicle,
@@ -58,9 +57,6 @@ export const DispatchOrders = ({
 
   const [actionErrors, setActionErrors] =
     useState<Record<string, string>>({});
-
-  const [deletingOrderId, setDeletingOrderId] =
-    useState<string | null>(null);
 
   useEffect(() => {
     fetchClients()
@@ -137,17 +133,13 @@ export const DispatchOrders = ({
     }));
   };
 
-  const clearOrderActionError = (
-    orderId: string
-  ) => {
-    setActionErrors((current) => {
-      const next = { ...current };
-
-      delete next[orderId];
-
-      return next;
-    });
-  };
+const clearOrderActionError = (orderId: string) => {
+  setActionErrors((current) => {
+    const next = { ...current };
+    delete next[orderId];
+    return next;
+  });
+};
 
   const handleStartDelivery = async (
     order: Order
@@ -350,52 +342,6 @@ export const DispatchOrders = ({
     }
   };
 
-  const handleDeleteOrder = async (
-    order: Order
-  ) => {
-    if (
-      order.status === "in-progress" ||
-      order.status === "completed"
-    ) {
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Delete order ${order.id}?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    clearOrderActionError(order.id);
-    setDeletingOrderId(order.id);
-
-    try {
-      await deleteOrder(order.id);
-
-      setOrders((currentOrders) =>
-        currentOrders.filter(
-          (item) => item.id !== order.id
-        )
-      );
-    } catch (error) {
-      console.error(
-        `Failed to delete order ${order.id}`,
-        error
-      );
-
-      setOrderActionError(
-        order.id,
-        error instanceof Error
-          ? error.message
-          : "Failed to delete order."
-      );
-    } finally {
-      setDeletingOrderId(null);
-    }
-  };
-
   const handleOpenAssignVehicle = (
     order: Order
   ) => {
@@ -585,10 +531,6 @@ export const DispatchOrders = ({
               order.status === "assigned" ||
               order.status === "delayed";
 
-            const canDelete =
-              order.status === "assigned" ||
-              order.status === "delayed";
-
             const actionError =
               actionErrors[order.id];
 
@@ -596,11 +538,7 @@ export const DispatchOrders = ({
               canAssignVehicle ||
               canStartDelivery ||
               canMarkCompleted ||
-              canEdit ||
-              canDelete;
-
-            const isDeleting =
-              deletingOrderId === order.id;
+              canEdit;
 
             return (
               <div
@@ -693,7 +631,6 @@ export const DispatchOrders = ({
                         onClick={() =>
                           onEditOrder(order)
                         }
-                        disabled={isDeleting}
                       >
                         Edit
                       </button>
@@ -707,7 +644,6 @@ export const DispatchOrders = ({
                             order
                           )
                         }
-                        disabled={isDeleting}
                       >
                         Assign vehicle
                       </button>
@@ -721,7 +657,6 @@ export const DispatchOrders = ({
                             order
                           )
                         }
-                        disabled={isDeleting}
                       >
                         Start delivery
                       </button>
@@ -735,25 +670,8 @@ export const DispatchOrders = ({
                             order
                           )
                         }
-                        disabled={isDeleting}
                       >
                         Mark completed
-                      </button>
-                    )}
-
-                    {canDelete && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleDeleteOrder(
-                            order
-                          )
-                        }
-                        disabled={isDeleting}
-                      >
-                        {isDeleting
-                          ? "Deleting..."
-                          : "Delete"}
                       </button>
                     )}
                   </div>

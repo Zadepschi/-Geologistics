@@ -84,18 +84,3 @@ export async function archiveDriver(
 
   return res.json();
 }
-
-export async function deleteDriver(
-  id: string
-): Promise<void> {
-  const res = await fetch(
-    `/api/drivers/${id}`,
-    {
-      method: "DELETE",
-    }
-  );
-
-  if (!res.ok) {
-    throw new Error("Failed to delete driver");
-  }
-}

@@ -83,18 +83,3 @@ export async function archiveClient(
 
   return res.json();
 }
-
-export async function deleteClient(
-  id: string
-): Promise<void> {
-  const res = await fetch(
-    `/api/clients/${id}`,
-    {
-      method: "DELETE",
-    },
-  );
-
-  if (!res.ok) {
-    throw new Error("Failed to delete client");
-  }
-}

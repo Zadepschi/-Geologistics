@@ -1,3 +1,4 @@
+
 import { Card } from "@/shared/ui/card/Card";
 import { useFleetStore } from "@/shared/store/fleet";
 import styles from "./FleetStats.module.scss";
@@ -10,19 +11,16 @@ export const FleetStats = () => {
       label: "Total",
       value: vehicles.length,
     },
-{
-  label: "On route",
-  value: vehicles.filter(
-    (vehicle) =>
-      vehicle.status === "on-route"
-  ).length,
-},
+    {
+      label: "On route",
+      value: vehicles.filter(
+        (vehicle) => vehicle.status === "on-route"
+      ).length,
+    },
     {
       label: "Idle",
       value: vehicles.filter(
-        (vehicle) =>
-          vehicle.status === "idle" ||
-          vehicle.route?.deliveryCompleted
+        (vehicle) => vehicle.status === "idle"
       ).length,
     },
     {

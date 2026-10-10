@@ -128,28 +128,3 @@ export async function archiveVehicle(
   return res.json();
 }
 
-export async function deleteVehicle(
-  id: string
-): Promise<void> {
-  const res = await fetch(
-    `/api/vehicles/${id}`,
-    {
-      method: "DELETE",
-    }
-  );
-
-  if (!res.ok) {
-    const errorText = await res.text();
-
-    console.error(
-      "Delete vehicle API error:",
-      res.status,
-      errorText
-    );
-
-    throw new Error(
-      errorText ||
-        `Failed to delete vehicle (${res.status})`
-    );
-  }
-}

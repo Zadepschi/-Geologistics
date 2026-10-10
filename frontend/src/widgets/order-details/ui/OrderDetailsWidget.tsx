@@ -19,6 +19,8 @@ const formatVehicleTitle = (vehicle: Vehicle) => {
 
 const getVehicleStatus = (vehicle: Vehicle) => vehicle.status;
 
+
+
 const getDriverName = (
   vehicle: Vehicle,
   drivers: Driver[]

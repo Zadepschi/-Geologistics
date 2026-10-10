@@ -30,7 +30,7 @@ export const FiltersPanel = () => {
 
         <button
           onClick={toggleClusters}
-          className={`${styles.action} ${isEnabled ? styles.primaryBlue : ""}`}
+          className={`${styles.action} ${isEnabled ? styles.primary : ""}`}
         >
           {isEnabled ? "Hide Clusters" : "Show Clusters"}
         </button>

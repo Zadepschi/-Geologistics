@@ -35,25 +35,55 @@ export const Header = () => {
 
   const title = pageTitles[location.pathname] ?? "Dashboard";
 
-  useEffect(() => {
-    const loadHeaderData = async () => {
-      try {
-        const [userData, notifData] = await Promise.all([
-          fetchUser(),
-          fetchNotifications(),
-        ]);
+useEffect(() => {
+  let cancelled = false;
 
-        setUser(userData);
-        setNotifications(notifData);
-      } catch (error) {
+  const loadHeaderData = async () => {
+    try {
+      const [userData, notifData] = await Promise.all([
+        fetchUser(),
+        fetchNotifications(),
+      ]);
+
+      if (cancelled) return;
+
+      setUser(userData);
+      setNotifications(notifData);
+    } catch (error) {
+      if (!cancelled) {
         console.error("Header error:", error);
-      } finally {
+      }
+    } finally {
+      if (!cancelled) {
         setLoading(false);
       }
-    };
+    }
+  };
 
-    loadHeaderData();
-  }, []);
+  void loadHeaderData();
+
+  const intervalId = window.setInterval(() => {
+    void fetchNotifications()
+      .then((data) => {
+        if (!cancelled) {
+          setNotifications(data);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error(
+            "Failed to refresh notifications:",
+            error,
+          );
+        }
+      });
+  }, 5000);
+
+  return () => {
+    cancelled = true;
+    window.clearInterval(intervalId);
+  };
+}, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

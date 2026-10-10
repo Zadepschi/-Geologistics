@@ -19,7 +19,11 @@ export const Sidebar = () => {
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""}`}>
       <div className={styles.top}>
         <div className={styles.brand}>
-          <span className={styles.brandMark}>G</span>
+         <img
+  src="/pic/logotip.png"
+  alt="Geologistics"
+  className={styles.brandLogo}
+/>
 
           {!collapsed && (
             <Typography as="span" variant="body" className={styles.brandText}>

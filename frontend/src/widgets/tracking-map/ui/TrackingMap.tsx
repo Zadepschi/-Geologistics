@@ -449,45 +449,38 @@ export const TrackingMap = () => {
   ordersRef.current =
     orders;
 
-  const clearSelectedRoute = (
-    map: mapboxgl.Map
-  ) => {
-    if (map.getLayer(routeLayerId)) {
-      map.removeLayer(routeLayerId);
-    }
+const clearSelectedRoute = (
+  map: mapboxgl.Map
+) => {
+  startMarkerRef.current?.remove();
+  finishMarkerRef.current?.remove();
 
-    if (
-      map.getSource(routeSourceId)
-    ) {
-      map.removeSource(routeSourceId);
-    }
+  startMarkerRef.current = null;
+  finishMarkerRef.current = null;
 
-    if (
-      map.getLayer(
-        completedRouteLayerId
-      )
-    ) {
-      map.removeLayer(
-        completedRouteLayerId
-      );
-    }
+  if (
+    mapRef.current !== map ||
+    !map.isStyleLoaded()
+  ) {
+    return;
+  }
 
-    if (
-      map.getSource(
-        completedRouteSourceId
-      )
-    ) {
-      map.removeSource(
-        completedRouteSourceId
-      );
-    }
+  if (map.getLayer(routeLayerId)) {
+    map.removeLayer(routeLayerId);
+  }
 
-    startMarkerRef.current?.remove();
-    finishMarkerRef.current?.remove();
+  if (map.getSource(routeSourceId)) {
+    map.removeSource(routeSourceId);
+  }
 
-    startMarkerRef.current = null;
-    finishMarkerRef.current = null;
-  };
+  if (map.getLayer(completedRouteLayerId)) {
+    map.removeLayer(completedRouteLayerId);
+  }
+
+  if (map.getSource(completedRouteSourceId)) {
+    map.removeSource(completedRouteSourceId);
+  }
+};
 
   // Загружаем заказы для tooltip.
   useEffect(() => {
@@ -550,40 +543,48 @@ export const TrackingMap = () => {
   }, []);
 
   // Переключение темы Mapbox.
-  useEffect(() => {
-    const map = mapRef.current;
+useEffect(() => {
+  const map = mapRef.current;
 
-    if (!map || !isMapLoaded) {
-      return;
-    }
+if (
+  !map ||
+  !isMapLoaded ||
+  !map.isStyleLoaded()
+) {
+  return;
+}
 
-    if (
-      isInitialMapThemeRef.current
-    ) {
-      isInitialMapThemeRef.current =
-        false;
+  if (isInitialMapThemeRef.current) {
+    isInitialMapThemeRef.current = false;
+    return;
+  }
 
-      return;
-    }
+  const style =
+    mapTheme === "dark"
+      ? "mapbox://styles/mapbox/dark-v11"
+      : "mapbox://styles/mapbox/outdoors-v12";
 
-    const style =
-      mapTheme === "dark"
-        ? "mapbox://styles/mapbox/dark-v11"
-        : "mapbox://styles/mapbox/outdoors-v12";
+  map.setStyle(style, {
+    diff: false,
+    localFontFamily: null,
+    localIdeographFontFamily: "sans-serif",
+  });
+}, [mapTheme, isMapLoaded]);
 
-    map.setStyle(style);
-  }, [
-    mapTheme,
-    isMapLoaded,
-  ]);
+// Orders layer + clusters.
+useEffect(() => {
+  const map = mapRef.current;
+if (
+  !map ||
+  !isMapLoaded ||
+  !map.isStyleLoaded()
+) {
+  return;
+}
 
-  // Orders layer + clusters.
-  useEffect(() => {
-    const map = mapRef.current;
-
-    if (!map || !isMapLoaded) {
-      return;
-    }
+  if (!map.isStyleLoaded()) {
+    return;
+  }
 
     const features = vehicles.map(
       (vehicle) => ({
@@ -748,9 +749,13 @@ export const TrackingMap = () => {
   useEffect(() => {
     const map = mapRef.current;
 
-    if (!map || !isMapLoaded) {
-      return;
-    }
+ if (
+  !map ||
+  !isMapLoaded ||
+  !map.isStyleLoaded()
+) {
+  return;
+}
 
     const source = map.getSource(
       ordersSourceId
