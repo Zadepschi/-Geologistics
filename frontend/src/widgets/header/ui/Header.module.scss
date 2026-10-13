@@ -33,7 +33,7 @@
   position: relative;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.1);
   }
 }
 
@@ -41,98 +41,317 @@
   position: absolute;
   top: -4px;
   right: -4px;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--accent);
+  background: #ef4444;
   color: #fff;
+  border: 2px solid #080f1d;
   font-size: 10px;
   font-weight: 700;
 }
 
 .notificationsDropdown {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 12px);
   right: 0;
-  width: 320px;
+  width: 360px;
+  max-width: calc(100vw - 24px);
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: #0b1220;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
-  z-index: 100;
+  border: 1px solid #34445d;
+  border-radius: 16px;
+  background: #101b2d;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(255, 255, 255, 0.035);
+  z-index: 1000;
 }
 
 .notificationsHeader {
-  padding: 14px 16px;
+  padding: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  background: #162338;
+  border-bottom: 1px solid #34445d;
+}
+
+.headerTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 
   strong {
+    color: #f1f5f9;
     font-size: 14px;
   }
+}
 
-  span {
-    font-size: 12px;
-    color: var(--muted);
+.headerSubtitle {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.unreadCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.countDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.allRead {
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+
+  .countDot {
+    background: #94a3b8;
   }
 }
 
 .notificationsList {
-  max-height: 320px;
+  max-height: min(440px, calc(100vh - 130px));
   overflow-y: auto;
+  overflow-x: hidden;
+  background: #101b2d;
+
+  // Firefox
+  scrollbar-width: thin;
+  scrollbar-color: #526780 #101b2d;
+
+  // Chrome, Edge, Safari
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #0b1423;
+    border-left: 1px solid rgba(148, 163, 184, 0.08);
+    border-radius: 0 0 12px 0;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      #647b96 0%,
+      #3d526d 100%
+    );
+    border: 2px solid #0b1423;
+    border-radius: 999px;
+    min-height: 36px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      #10b981 0%,
+      #059669 100%
+    );
+  }
+
+  &::-webkit-scrollbar-thumb:active {
+    background: #10b981;
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: #101b2d;
+  }
 }
 
 .notification {
   display: flex;
-  gap: 10px;
-  padding: 13px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 11px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  transition:
+    background 0.18s ease,
+    opacity 0.18s ease;
 
-  &:last-child {
+  &:last-of-type {
     border-bottom: none;
   }
 }
 
 .unread {
-  background: rgba(255, 255, 255, 0.025);
+  background: #192a40;
+  cursor: pointer;
+  box-shadow: inset 3px 0 0 #10b981;
+
+  &:hover {
+    background: #20354e;
+  }
+
+  .notificationText {
+    color: #f8fafc;
+    font-weight: 600;
+  }
+
+  .notificationDot {
+    background: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
+  }
+}
+
+.read {
+  background: #0d1727;
+  opacity: 0.72;
+
+  &:hover {
+    opacity: 0.9;
+    background: #142034;
+  }
+
+  .notificationText {
+    color: #a8b4c6;
+    font-weight: 400;
+  }
+
+  .notificationDot {
+    background: #64748b;
+  }
+}
+
+.notificationIndicator {
+  width: 8px;
+  flex: 0 0 8px;
+  padding-top: 5px;
 }
 
 .notificationDot {
+  display: block;
   width: 7px;
   height: 7px;
-  margin-top: 5px;
-  flex: 0 0 7px;
   border-radius: 50%;
-  background: var(--accent);
+}
+
+.notificationContent {
+  flex: 1;
+  min-width: 0;
 }
 
 .notificationText {
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.notificationFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 9px;
 }
 
 .notificationStatus {
-  margin-top: 4px;
-  font-size: 11px;
-  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 7px;
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.unreadStatus {
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+}
+
+.readStatus {
+  background: rgba(148, 163, 184, 0.13);
+  color: #94a3b8;
+}
+
+.markReadHint {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.loadMore {
+  width: 100%;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-top: 1px solid #34445d;
+  background: #162338;
+  color: #6ee7b7;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+
+  span {
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 400;
+  }
+
+  &:hover {
+    background: #20354e;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #10b981;
+    outline-offset: -3px;
+  }
 }
 
 .emptyNotifications {
-  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 20px;
   text-align: center;
-  color: var(--muted);
-  font-size: 13px;
+  color: #94a3b8;
+  font-size: 12px;
+
+  strong {
+    color: #f1f5f9;
+    font-size: 14px;
+  }
 }
 
-.user {
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+.emptyIcon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+  font-size: 18px;
+}
+
+@media (max-width: 480px) {
+  .notificationsDropdown {
+    position: fixed;
+    top: 76px;
+    right: 12px;
+    width: calc(100vw - 24px);
+  }
 }

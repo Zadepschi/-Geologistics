@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 
 import type { Order } from "@/entities/order";
+import { useMapThemeStore } from "@/features/switch-map-theme/model/store";
 
 import "mapbox-gl/dist/mapbox-gl.css";
 import styles from "./HistoryMap.module.scss";
@@ -57,7 +58,11 @@ export const HistoryMap = ({ order }: HistoryMapProps) => {
   const startMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const finishMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
+  const mapTheme = useMapThemeStore((state) => state.theme);
+  const previousThemeRef = useRef(mapTheme);
+
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [styleVersion, setStyleVersion] = useState(0);
   const [routes, setRoutes] = useState<HistoryRoute[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -112,18 +117,38 @@ export const HistoryMap = ({ order }: HistoryMapProps) => {
 
     mapboxgl.accessToken = token;
 
+    const initialStyle =
+      mapTheme === "dark"
+        ? "mapbox://styles/mapbox/dark-v11"
+        : "mapbox://styles/mapbox/outdoors-v12";
+
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: "mapbox://styles/mapbox/dark-v11",
+      style: initialStyle,
       center: [-74.006, 40.7128],
       zoom: 11,
     });
 
-    map.addControl(new mapboxgl.NavigationControl(), "bottom-right");
-
-    map.on("load", () => setIsMapLoaded(true));
-
     mapRef.current = map;
+
+    map.addControl(
+      new mapboxgl.NavigationControl(),
+      "bottom-right",
+    );
+
+    map.on("load", () => {
+      setIsMapLoaded(true);
+    });
+
+    // После загрузки нового стиля ждём завершения
+    // обновления карты и запускаем повторную отрисовку маршрута.
+    map.on("style.load", () => {
+      map.once("idle", () => {
+        if (mapRef.current === map) {
+          setStyleVersion((version) => version + 1);
+        }
+      });
+    });
 
     return () => {
       startMarkerRef.current?.remove();
@@ -134,120 +159,150 @@ export const HistoryMap = ({ order }: HistoryMapProps) => {
 
       map.remove();
       mapRef.current = null;
+
       setIsMapLoaded(false);
     };
   }, []);
 
-  // Рисуем маршрут выбранного завершённого заказа.
- 
-useEffect(() => {
-  const map = mapRef.current;
+  // Переключаем тему карты из общего Zustand store.
+  useEffect(() => {
+    const map = mapRef.current;
 
-  if (!map || !isMapLoaded || !map.isStyleLoaded()) {
-    return;
-  }
-const clearRoute = () => {
-  // Карта уже удаляется или заменена — ничего не трогаем.
-  if (mapRef.current !== map) {
-    return;
-  }
+    if (!map || !isMapLoaded) {
+      return;
+    }
 
-  startMarkerRef.current?.remove();
-  finishMarkerRef.current?.remove();
+    if (previousThemeRef.current === mapTheme) {
+      return;
+    }
 
-  startMarkerRef.current = null;
-  finishMarkerRef.current = null;
+    previousThemeRef.current = mapTheme;
 
-  if (!map.isStyleLoaded()) {
-    return;
-  }
+    const style =
+      mapTheme === "dark"
+        ? "mapbox://styles/mapbox/dark-v11"
+        : "mapbox://styles/mapbox/outdoors-v12";
 
-  if (map.getLayer(routeLayerId)) {
-    map.removeLayer(routeLayerId);
-  }
+    map.setStyle(style, {
+      diff: false,
+      localFontFamily: null,
+      localIdeographFontFamily: "sans-serif",
+    });
+  }, [mapTheme, isMapLoaded]);
 
-  if (map.getSource(routeSourceId)) {
-    map.removeSource(routeSourceId);
-  }
-};
+  // Рисуем или восстанавливаем маршрут выбранного заказа.
+  useEffect(() => {
+    const map = mapRef.current;
 
-  clearRoute();
+    if (!map || !isMapLoaded || !map.isStyleLoaded()) {
+      return;
+    }
 
-  if (!order) {
-    return;
-  }
+    const clearRoute = () => {
+      if (mapRef.current !== map) {
+        return;
+      }
 
-  const route = routes.find(
-    (item) => item.orderId === order.id,
-  );
+      startMarkerRef.current?.remove();
+      finishMarkerRef.current?.remove();
 
-  if (!route || !Array.isArray(route.path)) {
-    return;
-  }
+      startMarkerRef.current = null;
+      finishMarkerRef.current = null;
 
-  const validPath = route.path.filter(
-    (point) =>
-      Array.isArray(point) &&
-      point.length === 2 &&
-      Number.isFinite(point[0]) &&
-      Number.isFinite(point[1]),
-  );
+      if (!map.isStyleLoaded()) {
+        return;
+      }
 
-  if (validPath.length < 2) {
-    return;
-  }
+      if (map.getLayer(routeLayerId)) {
+        map.removeLayer(routeLayerId);
+      }
 
-  map.addSource(routeSourceId, {
-    type: "geojson",
-    data: toLineFeature(validPath),
-  });
+      if (map.getSource(routeSourceId)) {
+        map.removeSource(routeSourceId);
+      }
+    };
 
-  map.addLayer({
-    id: routeLayerId,
-    type: "line",
-    source: routeSourceId,
-    layout: {
-      "line-cap": "round",
-      "line-join": "round",
-    },
-    paint: {
-      "line-width": 4,
-      "line-color": "#60a5fa",
-      "line-opacity": 0.9,
-    },
-  });
+    clearRoute();
 
-  startMarkerRef.current = new mapboxgl.Marker(
-    createRoutePointElement("start"),
-  )
-    .setLngLat(validPath[0])
-    .addTo(map);
+    if (!order) {
+      return;
+    }
 
-  finishMarkerRef.current = new mapboxgl.Marker(
-    createRoutePointElement("finish"),
-  )
-    .setLngLat(validPath[validPath.length - 1])
-    .addTo(map);
+    const route = routes.find(
+      (item) => item.orderId === order.id,
+    );
 
-  const bounds = new mapboxgl.LngLatBounds();
+    if (!route || !Array.isArray(route.path)) {
+      return;
+    }
 
-  validPath.forEach((point) => bounds.extend(point));
+    const validPath = route.path.filter(
+      (point) =>
+        Array.isArray(point) &&
+        point.length === 2 &&
+        Number.isFinite(point[0]) &&
+        Number.isFinite(point[1]),
+    );
 
-  map.fitBounds(bounds, {
-    padding: 80,
-    maxZoom: 15,
-    duration: 700,
-  });
+    if (validPath.length < 2) {
+      return;
+    }
 
-  return clearRoute;
-}, [order, routes, isMapLoaded]);
+    map.addSource(routeSourceId, {
+      type: "geojson",
+      data: toLineFeature(validPath),
+    });
 
+    map.addLayer({
+      id: routeLayerId,
+      type: "line",
+      source: routeSourceId,
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-width": 4,
+        "line-color": "#60a5fa",
+        "line-opacity": 0.9,
+      },
+    });
+
+    startMarkerRef.current = new mapboxgl.Marker(
+      createRoutePointElement("start"),
+    )
+      .setLngLat(validPath[0])
+      .addTo(map);
+
+    finishMarkerRef.current = new mapboxgl.Marker(
+      createRoutePointElement("finish"),
+    )
+      .setLngLat(validPath[validPath.length - 1])
+      .addTo(map);
+
+    const bounds = new mapboxgl.LngLatBounds();
+
+    validPath.forEach((point) => bounds.extend(point));
+
+    map.fitBounds(bounds, {
+      padding: 80,
+      maxZoom: 15,
+      duration: 700,
+    });
+
+    return clearRoute;
+  }, [order, routes, isMapLoaded, styleVersion]);
 
   return (
     <div className={styles.map}>
-      <div ref={mapContainerRef} className={styles.mapContainer} />
+      <div
+        ref={mapContainerRef}
+        className={styles.mapContainer}
+      />
 
-      {error && <div className={styles.mapMessage}>{error}</div>}
+      {error && (
+        <div className={styles.mapMessage}>{error}</div>
+      )}
 
       {!order && (
         <div className={styles.mapMessage}>

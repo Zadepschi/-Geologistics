@@ -29,6 +29,7 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 type OrderView = "active" | "completed";
 
+
 interface DispatchOrdersProps {
   onEditOrder: (order: Order) => void;
 }

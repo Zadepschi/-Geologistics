@@ -3,51 +3,72 @@ import { useEffect, useState } from "react";
 import { Card } from "@/shared/ui/card/Card";
 import { Badge } from "@/shared/ui/badge/Badge";
 import { Progress } from "@/shared/ui/progress/Progress";
+
 import { useFleetStore } from "@/shared/store/fleet";
+
 import { fetchDrivers } from "@/shared/api/drivers";
+import { fetchOrders } from "@/shared/api/orders";
+import { fetchClients } from "@/shared/api/clients";
+
 import type { Driver } from "@/entities/driver";
 import type { Vehicle } from "@/entities/vehicle/model/types";
+import type { Order } from "@/entities/order";
+import type { Client } from "@/entities/client";
 
 import styles from "./OrderDetailsWidget.module.scss";
 
-const formatVehicleTitle = (vehicle: Vehicle) => {
-  const type =
-    vehicle.type.charAt(0).toUpperCase() + vehicle.type.slice(1);
+const ACTIVE_ORDER_STATUSES = [
+  "assigned",
+  "in-progress",
+  "delayed",
+];
 
-  return `${type} #${vehicle.id.replace("vehicle-", "")}`;
-};
+const isOrderActive = (order: Order) =>
+  ACTIVE_ORDER_STATUSES.includes(order.status);
 
-const getVehicleStatus = (vehicle: Vehicle) => vehicle.status;
-
-
+const getVehicleStatus = (vehicle: Vehicle) =>
+  vehicle.status;
 
 const getDriverName = (
   vehicle: Vehicle,
-  drivers: Driver[]
+  drivers: Driver[],
+  order?: Order
 ) => {
-  const driver = drivers.find(
-    (item) => item.vehicleId === vehicle.id
+  const driverId =
+    order?.deliveryRoute?.driverId ??
+    order?.driverId;
+
+  const driverById = drivers.find(
+    (driver) =>
+      driver.id === driverId &&
+      !driver.isArchived
   );
 
-  return driver?.name ?? "Not assigned";
-};
-
-const getCurrentSpeed = (vehicle: Vehicle) => {
-  if (vehicle.status === "idle") {
-    return "0 km/h";
+  if (driverById) {
+    return driverById.name;
   }
 
-  const speed = vehicle.telemetry.speedKmH;
+  const driverByVehicle = drivers.find(
+    (driver) =>
+      driver.vehicleId === vehicle.id &&
+      !driver.isArchived
+  );
 
-  return typeof speed === "number"
-    ? `${Math.round(speed)} km/h`
-    : "—";
+  return driverByVehicle?.name ?? "Not assigned";
 };
+
+const getClient = (
+  order: Order | undefined,
+  clients: Client[]
+) =>
+  clients.find(
+    (client) => client.id === order?.clientId
+  );
 
 const getEta = (vehicle: Vehicle) => {
   if (
-    vehicle.status === "idle" ||
-    vehicle.route?.deliveryCompleted
+    vehicle.route?.deliveryCompleted ||
+    vehicle.status === "idle"
   ) {
     return "Completed";
   }
@@ -74,7 +95,8 @@ const getEta = (vehicle: Vehicle) => {
 
 const getProgressValue = (vehicle: Vehicle) => {
   const total = vehicle.route?.path.length ?? 0;
-  const completed = vehicle.route?.completedPath?.length ?? 0;
+  const completed =
+    vehicle.route?.completedPath?.length ?? 0;
 
   if (total < 2 || completed < 2) {
     return 0;
@@ -87,50 +109,84 @@ const getProgressValue = (vehicle: Vehicle) => {
 };
 
 export const OrderDetailsWidget = () => {
-  const vehicles = useFleetStore((s) => s.vehicles);
+  const vehicles = useFleetStore((state) => state.vehicles);
+
   const selectedVehicleId = useFleetStore(
-    (s) => s.selectedVehicleId
+    (state) => state.selectedVehicleId
   );
 
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
 
   useEffect(() => {
     let cancelled = false;
 
-    const loadDrivers = async () => {
+    const loadData = async () => {
       try {
-        const data = await fetchDrivers();
+        const [
+          driversData,
+          ordersData,
+          clientsData,
+        ] = await Promise.all([
+          fetchDrivers(),
+          fetchOrders(),
+          fetchClients(),
+        ]);
 
         if (!cancelled) {
-          setDrivers(data);
+          setDrivers(driversData);
+          setOrders(ordersData);
+          setClients(clientsData);
         }
       } catch (error) {
-        console.error("Failed to load drivers:", error);
+        console.error(
+          "Failed to load order details:",
+          error
+        );
       }
     };
 
-    loadDrivers();
+    void loadData();
 
     return () => {
       cancelled = true;
     };
   }, []);
 
+  const activeOrders = orders.filter(isOrderActive);
+
   const selectedVehicle =
-    vehicles.find((v) => v.id === selectedVehicleId) ??
-    vehicles[0] ??
-    null;
+    vehicles.find(
+      (vehicle) => vehicle.id === selectedVehicleId
+    ) ?? null;
 
-  if (!selectedVehicle) {
-    return (
-      <Card className={styles.widget}>
-        <div className={styles.empty}>
-          Select a vehicle to view delivery details
-        </div>
-      </Card>
-    );
-  }
+  const routeOrderId = selectedVehicle?.route?.orderId;
 
+  const selectedOrder = activeOrders.find(
+    (order) =>
+      order.id === routeOrderId ||
+      order.deliveryRoute?.orderId === routeOrderId
+  );
+
+  if (
+  activeOrders.length === 0 ||
+  !selectedVehicle ||
+  !selectedOrder
+) {
+  return (
+    <Card className={styles.widget}>
+      <div className={styles.empty}>
+        <strong>No Active Orders.   </strong>
+        <span>
+           All deliveries are completed. New orders will appear here.
+        </span>
+      </div>
+    </Card>
+  );
+}
+
+  const client = getClient(selectedOrder, clients);
   const progress = getProgressValue(selectedVehicle);
 
   return (
@@ -141,32 +197,53 @@ export const OrderDetailsWidget = () => {
         </Badge>
 
         <strong className={styles.title}>
-          {formatVehicleTitle(selectedVehicle)}
+          Order: {selectedOrder.id}
         </strong>
+
+        <span className={styles.vehicleName}>
+          Vehicle: {selectedVehicle.name}
+        </span>
       </div>
 
       <div className={styles.divider} />
 
-      <div className={styles.stat}>
-        <span>Speed</span>
-        <strong>{getCurrentSpeed(selectedVehicle)}</strong>
-      </div>
+      <div className={styles.details}>
+        <div className={styles.stat}>
+          <span>Client</span>
+          <strong>
+            {client?.name ?? "Unknown client"}
+          </strong>
+        </div>
 
-      <div className={styles.stat}>
-        <span>Driver</span>
-        <strong>
-          {getDriverName(selectedVehicle, drivers)}
-        </strong>
-      </div>
+        <div className={styles.stat}>
+          <span>Driver</span>
+          <strong>
+            {getDriverName(
+              selectedVehicle,
+              drivers,
+              selectedOrder
+            )}
+          </strong>
+        </div>
 
-      <div className={styles.stat}>
-        <span>ETA</span>
-        <strong>{getEta(selectedVehicle)}</strong>
+        <div className={`${styles.stat} ${styles.address}`}>
+          <span>Delivery address</span>
+          <strong>
+            {client?.address ??
+              selectedOrder.address ??
+              "Address unavailable"}
+          </strong>
+        </div>
+
+        <div className={styles.stat}>
+          <span>ETA</span>
+          <strong>{getEta(selectedVehicle)}</strong>
+        </div>
       </div>
 
       <div className={styles.progress}>
         <div className={styles.progressHeader}>
-          <span>Progress</span>
+          <span>Delivery progress</span>
           <strong>{progress}%</strong>
         </div>
 

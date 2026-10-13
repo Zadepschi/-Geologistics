@@ -199,30 +199,24 @@
   font-size: 13px;
 }
 
+
 .info {
   display: grid;
-  grid-template-columns: repeat(
-    4,
-    minmax(0, 1fr)
-  );
-  gap: 12px;
-
-  div {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  span {
-    color: #94a3b8;
-    font-size: 12px;
-  }
-
-  strong {
-    color: #f8fafc;
-    font-size: 14px;
-  }
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 16px;
 }
+
+.info > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.info strong {
+  overflow-wrap: anywhere;
+}
+
 
 .empty {
   display: flex;

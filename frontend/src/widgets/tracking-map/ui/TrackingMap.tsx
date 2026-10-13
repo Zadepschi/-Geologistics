@@ -394,9 +394,6 @@ export const TrackingMap = () => {
   const focusedVehicleIdRef =
     useRef<string | null>(null);
 
-  const isInitialMapThemeRef =
-    useRef(true);
-
   const vehiclesRef =
     useRef<Vehicle[]>([]);
 
@@ -430,6 +427,7 @@ export const TrackingMap = () => {
     useMapThemeStore(
       (s) => s.theme
     );
+    const appliedThemeRef = useRef(mapTheme);
 
   const clustersEnabled =
     useClustersStore(
@@ -494,6 +492,8 @@ const clearSelectedRoute = (
       });
   }, []);
 
+
+  
   // Инициализация карты.
   useEffect(() => {
     if (
@@ -507,7 +507,9 @@ const clearSelectedRoute = (
       container:
         mapContainerRef.current,
       style:
-        "mapbox://styles/mapbox/dark-v11",
+  mapTheme === "dark"
+    ? "mapbox://styles/mapbox/dark-v11"
+    : "mapbox://styles/mapbox/outdoors-v12",
       center: [-74.006, 40.7128],
       zoom: 11,
     });
@@ -521,11 +523,9 @@ const clearSelectedRoute = (
       setIsMapLoaded(true);
     });
 
-    map.on("style.load", () => {
-      setStyleVersion(
-        (version) => version + 1
-      );
-    });
+  map.on("style.load", () => {
+  setStyleVersion((version) => version + 1);
+});
 
     mapRef.current = map;
 
@@ -542,22 +542,20 @@ const clearSelectedRoute = (
     };
   }, []);
 
-  // Переключение темы Mapbox.
+// Переключение темы Mapbox.
 useEffect(() => {
   const map = mapRef.current;
 
-if (
-  !map ||
-  !isMapLoaded ||
-  !map.isStyleLoaded()
-) {
-  return;
-}
-
-  if (isInitialMapThemeRef.current) {
-    isInitialMapThemeRef.current = false;
+  if (!map || !isMapLoaded) {
     return;
   }
+
+  // Не перезагружаем стиль, если он уже соответствует теме.
+  if (appliedThemeRef.current === mapTheme) {
+    return;
+  }
+
+  appliedThemeRef.current = mapTheme;
 
   const style =
     mapTheme === "dark"
@@ -571,6 +569,8 @@ if (
   });
 }, [mapTheme, isMapLoaded]);
 
+
+const previousClustersEnabledRef = useRef(clustersEnabled);
 // Orders layer + clusters.
 useEffect(() => {
   const map = mapRef.current;
@@ -585,7 +585,28 @@ if (
   if (!map.isStyleLoaded()) {
     return;
   }
+const clustersModeChanged =
+  previousClustersEnabledRef.current !== clustersEnabled;
 
+if (clustersModeChanged) {
+  previousClustersEnabledRef.current = clustersEnabled;
+
+  if (map.getLayer(ordersClusterCountLayerId)) {
+    map.removeLayer(ordersClusterCountLayerId);
+  }
+
+  if (map.getLayer(ordersClusterLayerId)) {
+    map.removeLayer(ordersClusterLayerId);
+  }
+
+  if (map.getLayer(ordersLayerId)) {
+    map.removeLayer(ordersLayerId);
+  }
+
+  if (map.getSource(ordersSourceId)) {
+    map.removeSource(ordersSourceId);
+  }
+}
     const features = vehicles.map(
       (vehicle) => ({
         type: "Feature" as const,
@@ -745,108 +766,15 @@ if (
     styleVersion,
   ]);
 
-  // Обновляем состояние кластеров после переключения.
-  useEffect(() => {
-    const map = mapRef.current;
-
- if (
-  !map ||
-  !isMapLoaded ||
-  !map.isStyleLoaded()
-) {
-  return;
-}
-
-    const source = map.getSource(
-      ordersSourceId
-    ) as
-      | mapboxgl.GeoJSONSource
-      | undefined;
-
-    if (!source) {
-      return;
-    }
-
-    const data = {
-      type: "FeatureCollection" as const,
-      features: vehicles.map(
-        (vehicle) => ({
-          type: "Feature" as const,
-          properties: {
-            vehicleId: vehicle.id,
-            vehicleName: vehicle.name,
-          },
-          geometry: {
-            type: "Point" as const,
-            coordinates: [
-              vehicle.telemetry.lng,
-              vehicle.telemetry.lat,
-            ],
-          },
-        })
-      ),
-    };
-
-    source.setData(data);
-
-    if (
-      map.getLayer(
-        ordersLayerId
-      )
-    ) {
-      map.setLayoutProperty(
-        ordersLayerId,
-        "visibility",
-        isOrdersVisible
-          ? "visible"
-          : "none"
-      );
-    }
-
-    if (
-      map.getLayer(
-        ordersClusterLayerId
-      )
-    ) {
-      map.setLayoutProperty(
-        ordersClusterLayerId,
-        "visibility",
-        isOrdersVisible &&
-          clustersEnabled
-          ? "visible"
-          : "none"
-      );
-    }
-
-    if (
-      map.getLayer(
-        ordersClusterCountLayerId
-      )
-    ) {
-      map.setLayoutProperty(
-        ordersClusterCountLayerId,
-        "visibility",
-        isOrdersVisible &&
-          clustersEnabled
-          ? "visible"
-          : "none"
-      );
-    }
-  }, [
-    vehicles,
-    clustersEnabled,
-    isOrdersVisible,
-    isMapLoaded,
-    styleVersion,
-  ]);
+ 
 
   // Tooltip для жёлтых точек.
   useEffect(() => {
     const map = mapRef.current;
 
-    if (!map || !isMapLoaded) {
-      return;
-    }
+   if (!map || !isMapLoaded || !map.isStyleLoaded()) {
+  return;
+}
 
     const handleMouseEnter = (
       event: mapboxgl.MapLayerMouseEvent
@@ -950,6 +878,7 @@ if (
     styleVersion,
   ]);
 
+
   // Полный маршрут выбранного автомобиля.
   useEffect(() => {
     const map = mapRef.current;
@@ -958,121 +887,115 @@ if (
       return;
     }
 
-    if (!selectedVehicle) {
-      clearSelectedRoute(map);
+    let cancelled = false;
 
-      focusedVehicleIdRef.current =
-        null;
+    const drawFullRoute = () => {
+      if (cancelled || mapRef.current !== map) {
+        return;
+      }
 
-      return;
-    }
+      if (!map.isStyleLoaded()) {
+        map.once("idle", drawFullRoute);
+        return;
+      }
 
-    // Завершённый маршрут больше не показываем
-    // на оперативной карте.
-    if (
-      selectedVehicle.route
-        ?.deliveryCompleted === true
-    ) {
-      clearSelectedRoute(map);
+      if (!selectedVehicle) {
+        clearSelectedRoute(map);
+        focusedVehicleIdRef.current = null;
+        return;
+      }
 
-      focusedVehicleIdRef.current =
-        selectedVehicle.id;
+      if (selectedVehicle.route?.deliveryCompleted === true) {
+        clearSelectedRoute(map);
+        focusedVehicleIdRef.current = selectedVehicle.id;
+        return;
+      }
 
-      return;
-    }
+      const routePath = selectedVehicle.route?.path ?? [];
 
-    const routePath =
-      selectedVehicle.route?.path ?? [];
+      if (routePath.length < 2) {
+        clearSelectedRoute(map);
+        return;
+      }
 
-    if (routePath.length < 2) {
-      clearSelectedRoute(map);
-      return;
-    }
+      const fullRouteData = toLineFeature(routePath);
 
-    const fullRouteData =
-      toLineFeature(routePath);
-
-    const fullRouteSource =
-      map.getSource(
-        routeSourceId
-      ) as
+      const source = map.getSource(routeSourceId) as
         | mapboxgl.GeoJSONSource
         | undefined;
 
-    if (fullRouteSource) {
-      fullRouteSource.setData(
-        fullRouteData
-      );
+      if (source) {
+        source.setData(fullRouteData);
+      } else {
+        map.addSource(routeSourceId, {
+          type: "geojson",
+          data: fullRouteData,
+        });
+      }
+
+      if (!map.getLayer(routeLayerId)) {
+        map.addLayer({
+          id: routeLayerId,
+          type: "line",
+          source: routeSourceId,
+          layout: {
+            "line-cap": "round",
+            "line-join": "round",
+          },
+          paint: {
+            "line-width": 5,
+            "line-color": "#60a5fa",
+            "line-opacity": 0.45,
+          },
+        });
+      }
+
+      startMarkerRef.current?.remove();
+      finishMarkerRef.current?.remove();
+
+      if (selectedVehicle.route?.start) {
+        startMarkerRef.current = new mapboxgl.Marker(
+          createRoutePointElement("start", selectedVehicle.type)
+        )
+          .setLngLat(selectedVehicle.route.start)
+          .addTo(map);
+      }
+
+      if (selectedVehicle.route?.finish) {
+        finishMarkerRef.current = new mapboxgl.Marker(
+          createRoutePointElement("finish", selectedVehicle.type)
+        )
+          .setLngLat(selectedVehicle.route.finish)
+          .addTo(map);
+      }
+
+      const shouldFocusSelectedVehicle =
+        focusedVehicleIdRef.current !== selectedVehicle.id;
+
+      focusedVehicleIdRef.current = selectedVehicle.id;
+
+      if (shouldFocusSelectedVehicle) {
+        map.easeTo({
+          center: [
+            selectedVehicle.telemetry.lng,
+            selectedVehicle.telemetry.lat,
+          ],
+          zoom: 13,
+          duration: 700,
+        });
+      }
+    };
+
+    if (map.isStyleLoaded()) {
+      drawFullRoute();
     } else {
-      map.addSource(routeSourceId, {
-        type: "geojson",
-        data: fullRouteData,
-      });
-
-      map.addLayer({
-        id: routeLayerId,
-        type: "line",
-        source: routeSourceId,
-        layout: {
-          "line-cap": "round",
-          "line-join": "round",
-        },
-        paint: {
-          "line-width": 4,
-          "line-color": "#60a5fa",
-          "line-opacity": 0.35,
-        },
-      });
+      map.once("idle", drawFullRoute);
     }
 
-    startMarkerRef.current?.remove();
-    finishMarkerRef.current?.remove();
-
-    if (selectedVehicle.route?.start) {
-      startMarkerRef.current =
-        new mapboxgl.Marker(
-          createRoutePointElement(
-            "start",
-            selectedVehicle.type
-          )
-        )
-          .setLngLat(
-            selectedVehicle.route.start
-          )
-          .addTo(map);
-    }
-
-    if (selectedVehicle.route?.finish) {
-      finishMarkerRef.current =
-        new mapboxgl.Marker(
-          createRoutePointElement(
-            "finish",
-            selectedVehicle.type
-          )
-        )
-          .setLngLat(
-            selectedVehicle.route.finish
-          )
-          .addTo(map);
-    }
-
-    const shouldFocusSelectedVehicle =
-      focusedVehicleIdRef.current !==
-      selectedVehicle.id;
-
-    focusedVehicleIdRef.current =
-      selectedVehicle.id;
-
-    if (shouldFocusSelectedVehicle) {
-      map.easeTo({
-        center: [
-          selectedVehicle.telemetry.lng,
-          selectedVehicle.telemetry.lat,
-        ],
-        zoom: 13,
-        duration: 700,
-      });
-    }
+    return () => {
+      cancelled = true;
+      map.off("idle", drawFullRoute);
+    };
   }, [
     selectedVehicleId,
     selectedVehicle?.route?.path,
@@ -1083,115 +1006,115 @@ if (
     styleVersion,
   ]);
 
-  // Прогресс выбранного маршрута.
+
+// Прогресс выбранного маршрута — ярко-синяя линия.
   useEffect(() => {
+    
     const map = mapRef.current;
 
-    if (
-      !map ||
-      !isMapLoaded ||
-      !selectedVehicle
-    ) {
+    if (!map || !isMapLoaded || !selectedVehicle) {
       return;
     }
 
-    // Завершённый маршрут больше не является
-    // частью оперативного Tracking.
-    if (
-      selectedVehicle.route
-        ?.deliveryCompleted === true
-    ) {
+    let cancelled = false;
+
+    const drawCompletedRoute = () => {
+      
       if (
-        map.getLayer(
-          completedRouteLayerId
-        )
+        cancelled ||
+        mapRef.current !== map ||
+        !map.isStyleLoaded()
       ) {
-        map.removeLayer(
-          completedRouteLayerId
-        );
+        return;
       }
 
-      if (
-        map.getSource(
-          completedRouteSourceId
-        )
-      ) {
-        map.removeSource(
-          completedRouteSourceId
-        );
-      }
+      const removeCompletedRoute = () => {
+        if (map.getLayer(completedRouteLayerId)) {
+          map.removeLayer(completedRouteLayerId);
+        }
 
-      return;
-    }
-
-    const completedPath =
-      selectedVehicle.route
-        ?.completedPath ?? [];
-
-    if (completedPath.length < 2) {
-      if (
-        map.getLayer(
-          completedRouteLayerId
-        )
-      ) {
-        map.removeLayer(
-          completedRouteLayerId
-        );
-      }
+        if (map.getSource(completedRouteSourceId)) {
+          map.removeSource(completedRouteSourceId);
+        }
+      };
 
       if (
-        map.getSource(
-          completedRouteSourceId
-        )
+        selectedVehicle.route?.deliveryCompleted === true
       ) {
-        map.removeSource(
-          completedRouteSourceId
-        );
+        removeCompletedRoute();
+        return;
       }
 
-      return;
-    }
+      const completedPath =
+        selectedVehicle.route?.completedPath ?? [];
+        
 
-    const completedRouteData =
-      toLineFeature(completedPath);
+      if (completedPath.length < 2) {
+        removeCompletedRoute();
+        return;
+      }
 
-    const completedRouteSource =
-      map.getSource(
+      const completedRouteData =
+        toLineFeature(completedPath);
+
+      const source = map.getSource(
         completedRouteSourceId
-      ) as
-        | mapboxgl.GeoJSONSource
-        | undefined;
+      ) as mapboxgl.GeoJSONSource | undefined;
 
-    if (completedRouteSource) {
-      completedRouteSource.setData(
-        completedRouteData
-      );
-
-      return;
-    }
-
-    map.addSource(
-      completedRouteSourceId,
-      {
-        type: "geojson",
-        data: completedRouteData,
+      if (source) {
+        source.setData(completedRouteData);
+      } else {
+        map.addSource(completedRouteSourceId, {
+          type: "geojson",
+          data: completedRouteData,
+        });
       }
-    );
 
-    map.addLayer({
-      id: completedRouteLayerId,
-      type: "line",
-      source:
-        completedRouteSourceId,
-      layout: {
-        "line-cap": "round",
-        "line-join": "round",
-      },
-      paint: {
-        "line-width": 5,
-        "line-color": "#2563eb",
-      },
-    });
+      if (!map.getLayer(completedRouteLayerId)) {
+        map.addLayer({
+          id: completedRouteLayerId,
+          type: "line",
+          source: completedRouteSourceId,
+          layout: {
+            "line-cap": "round",
+            "line-join": "round",
+          },
+          paint: {
+            "line-color": "#2563eb",
+            "line-width": 5,
+            "line-opacity": 1,
+          },
+        });
+      }
+    };
+
+   
+const waitForMapIdle = () => {
+  if (cancelled || mapRef.current !== map) {
+    return;
+  }
+
+  if (map.isStyleLoaded()) {
+    console.log("[ROUTE] Map ready; drawing completed path");
+    drawCompletedRoute();
+  } else {
+    console.log("[ROUTE] Map not ready yet; waiting for idle");
+    map.once("idle", waitForMapIdle);
+  }
+};
+
+if (map.isStyleLoaded()) {
+  drawCompletedRoute();
+} else {
+  map.once("idle", waitForMapIdle);
+}
+
+return () => {
+  cancelled = true;
+  map.off("idle", waitForMapIdle);
+  map.off("style.load", drawCompletedRoute);
+};
+
   }, [
     selectedVehicle,
     isMapLoaded,

@@ -9,6 +9,7 @@ const PROGRESS_INTERVAL_MS = 700;
 const STEP_INTERVAL_MS = 700;
 
 const calculateEtaMinutes = (
+  
   pathLength: number,
   currentPathIndex: number,
   deliveryCompleted: boolean
