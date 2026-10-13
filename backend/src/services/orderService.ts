@@ -100,6 +100,74 @@ function isValidCoordinate(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+
+type Coordinate = [number, number]; // [longitude, latitude]
+
+const SIMULATION_SPEED_KMH = 40;
+const EARTH_RADIUS_KM = 6371;
+
+function distanceBetweenPointsKm(
+  a: Coordinate,
+  b: Coordinate,
+): number {
+  const toRad = (value: number) => (value * Math.PI) / 180;
+
+  const [lon1, lat1] = a.map(toRad);
+  const [lon2, lat2] = b.map(toRad);
+
+  const dLat = lat2 - lat1;
+  const dLon = lon2 - lon1;
+
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) *
+      Math.cos(lat2) *
+      Math.sin(dLon / 2) ** 2;
+
+  return 2 * EARTH_RADIUS_KM *
+    Math.asin(Math.sqrt(Math.min(1, h)));
+}
+
+
+function segmentTravelMs(a: Coordinate, b: Coordinate): number {
+  const distanceKm = distanceBetweenPointsKm(a, b);
+
+  return Math.max(
+    1,
+    Math.ceil(
+      (distanceKm / SIMULATION_SPEED_KMH) * 60 * 60 * 1000,
+    ),
+  );
+}
+
+function remainingTravelMs(
+  path: Coordinate[],
+  currentPathIndex: number,
+): number {
+  if (path.length < 2) {
+    return 0;
+  }
+
+  const start = Math.max(
+    0,
+    Math.min(currentPathIndex, path.length - 1),
+  );
+
+  let duration = 0;
+
+  for (let i = start; i < path.length - 1; i++) {
+    duration += segmentTravelMs(path[i], path[i + 1]);
+  }
+
+  return duration;
+}
+
+
+function estimateTravelMs(distanceKm: number): number {
+  return (distanceKm / SIMULATION_SPEED_KMH) * 60 * 60 * 1000;
+}
+
+
 function validateCreateOrderInput(input: CreateOrderInput) {
   if (
     !input.clientId ||
@@ -462,6 +530,7 @@ export async function updateOrder(
 // UPDATE ORDER STATUS
 // -----------------------------------------------------------------------------
 
+
 export async function updateOrderStatus(
   orderId: string,
   input: UpdateOrderStatusInput,
@@ -474,7 +543,6 @@ export async function updateOrderStatus(
   }
 
   const status = input.status;
-
   const client = await pool.connect();
 
   try {
@@ -492,9 +560,7 @@ export async function updateOrderStatus(
       );
     }
 
-    const currentStatus =
-      order.status as OrderStatus;
-
+    const currentStatus = order.status as OrderStatus;
     const allowedTransitions =
       allowedOrderTransitions[currentStatus];
 
@@ -505,167 +571,204 @@ export async function updateOrderStatus(
       );
     }
 
-    // -------------------------------------------------------------------------
+    let estimatedArrivalAt: Date | undefined;
+
+    // ---------------------------------------------------------
     // START DELIVERY
-    // -------------------------------------------------------------------------
+    // ---------------------------------------------------------
 
-  if (status === "in-progress") {
-  const route = input.route;
+    if (status === "in-progress") {
+      const route = input.route;
 
-  if (
-    !route?.start ||
-    !route?.finish ||
-    !route?.path ||
-    route.path.length < 2
-  ) {
-    throw new OrderServiceError(
-      "Route is required to start delivery",
-      400,
-    );
-  }
-const activeRoute =
-  await findActiveDeliveryRoute(
-    client,
-    order.id,
-  );
+      if (
+        !route?.start ||
+        !route?.finish ||
+        !route?.path ||
+        route.path.length < 2
+      ) {
+        throw new OrderServiceError(
+          "Route is required to start delivery",
+          400,
+        );
+      }
 
-if (activeRoute) {
-  throw new OrderServiceError(
-    "Order already has an active delivery route",
-    409,
-  );
-}
+      const activeRoute = await findActiveDeliveryRoute(
+        client,
+        order.id,
+      );
 
-await createDeliveryRoute(
-  client,
-  {
-    orderId: order.id,
-    vehicleId: order.vehicleId,
-    driverId: order.driverId,
-    startLat: route.start[1],
-    startLng: route.start[0],
-    finishLat: route.finish[1],
-    finishLng: route.finish[0],
-    path: route.path,
-  },
-);
+      if (activeRoute) {
+        throw new OrderServiceError(
+          "Order already has an active delivery route",
+          409,
+        );
+      }
 
-// Записываем событие в Recent Activity.
-await createActivity(client, {
-  type: "delivery_started",
-  title: "Delivery started",
-  description: `Order ${order.id} started delivery`,
-  orderId: order.id,
-  vehicleId: order.vehicleId,
-});
+      // Проверяем координаты маршрута.
+      const isValidPath = route.path.every(
+        (point) =>
+          Array.isArray(point) &&
+          point.length === 2 &&
+          Number.isFinite(point[0]) &&
+          Number.isFinite(point[1]) &&
+          Math.abs(point[0]) <= 180 &&
+          Math.abs(point[1]) <= 90,
+      );
 
-// Создаём уведомление.
-await createNotification(
-  client,
-  `Delivery started: order ${order.id}`,
-);
+      if (!isValidPath) {
+        throw new OrderServiceError(
+          "Route contains invalid coordinates",
+          400,
+        );
+      }
 
-// Машина выходит на маршрут.
-await setVehicleStatus(
-  client,
-  order.vehicleId,
-  "on-route",
-  route.start[1],
-  route.start[0],
-);
+      const path = route.path as Coordinate[];
+      const startedAt = new Date();
 
-// Проверяем актуальный статус машины.
-  const vehicle = await lockVehicle(
-    client,
-    order.vehicleId,
-  );
+      // ETA рассчитывается по расстоянию и средней скорости.
+      const travelTimeMs = remainingTravelMs(path, 0);
 
-  if (!vehicle || vehicle.status !== "on-route") {
-    throw new OrderServiceError(
-      "Vehicle is no longer available",
-      409,
-    );
-  }
-}
-    // -------------------------------------------------------------------------
-    // UPDATE ORDER STATUS
-    // -------------------------------------------------------------------------
+      estimatedArrivalAt = new Date(
+        startedAt.getTime() + travelTimeMs,
+      );
+
+      await createDeliveryRoute(client, {
+        orderId: order.id,
+        vehicleId: order.vehicleId,
+        driverId: order.driverId,
+        startLat: route.start[1],
+        startLng: route.start[0],
+        finishLat: route.finish[1],
+        finishLng: route.finish[0],
+        path,
+      });
+
+      await createActivity(client, {
+        type: "delivery_started",
+        title: "Delivery started",
+        description: `Order ${order.id} started delivery`,
+        orderId: order.id,
+        vehicleId: order.vehicleId,
+      });
+
+      await createNotification(
+        client,
+        `Delivery started: order ${order.id}`,
+      );
+
+      await setVehicleStatus(
+        client,
+        order.vehicleId,
+        "on-route",
+        route.start[1],
+        route.start[0],
+      );
+
+      const vehicle = await lockVehicle(
+        client,
+        order.vehicleId,
+      );
+
+      if (!vehicle || vehicle.status !== "on-route") {
+        throw new OrderServiceError(
+          "Vehicle is no longer available",
+          409,
+        );
+      }
+    }
+
+    // ---------------------------------------------------------
+    // UPDATE ORDER STATUS AND TIMESTAMPS
+    // ---------------------------------------------------------
 
     await updateOrderStatusRepository(
       client,
       order.id,
       status,
+      estimatedArrivalAt,
     );
 
-    // -------------------------------------------------------------------------
-    // COMPLETE
-    // -------------------------------------------------------------------------
+    // ---------------------------------------------------------
+    // COMPLETE DELIVERY
+    // ---------------------------------------------------------
 
-if (status === "completed") {
-  const activeRoute =
-    await findActiveDeliveryRoute(
-      client,
-      order.id,
-    );
-
- if (activeRoute) {
-  const route =
-    await findLatestDeliveryRouteForUpdate(
-      client,
-      order.id,
-    );
-
-  if (route && route.id === activeRoute.id) {
-    await completeDeliveryRoute(
-      client,
-      route.id,
-      Number(route.currentPathIndex) || 0,
-      route.completedPath ?? [],
-      new Date(),
-    );
-  }
-}
-
-  // Освобождаем машину.
-  await setVehicleStatus(
-    client,
-    order.vehicleId,
-    "idle",
-  );
-
-  // Освобождаем водителя.
-  await setDriverStatus(
-    client,
-    order.driverId,
-    "available",
-  );
-
-  // Добавляем событие в Recent Activity.
-  await createActivity(client, {
-    type: "delivery_completed",
-    title: "Delivery completed",
-    description: `Order ${order.id} completed delivery`,
-    orderId: order.id,
-    vehicleId: order.vehicleId,
-  });
-
-  // Создаём уведомление.
-  await createNotification(
-    client,
-    `Delivery completed: order ${order.id}`,
-  );
-}
-    const deliveryAddress =
-      await findDeliveryAddress(
-        client,
-        order.deliveryAddressId,
-      );
-
-    const deliveryRoute =
-      await findLatestDeliveryRoute(
+    if (status === "completed") {
+      const activeRoute = await findActiveDeliveryRoute(
         client,
         order.id,
       );
+
+      if (activeRoute) {
+        const route =
+          await findLatestDeliveryRouteForUpdate(
+            client,
+            order.id,
+          );
+
+        if (route && route.id === activeRoute.id) {
+          await completeDeliveryRoute(
+            client,
+            route.id,
+            Number(route.currentPathIndex) || 0,
+            route.completedPath ?? [],
+            new Date(),
+          );
+        }
+      }
+
+      await setVehicleStatus(
+        client,
+        order.vehicleId,
+        "idle",
+      );
+
+      await setDriverStatus(
+        client,
+        order.driverId,
+        "available",
+      );
+
+      await createActivity(client, {
+        type: "delivery_completed",
+        title: "Delivery completed",
+        description: `Order ${order.id} completed delivery`,
+        orderId: order.id,
+        vehicleId: order.vehicleId,
+      });
+
+      await createNotification(
+        client,
+        `Delivery completed: order ${order.id}`,
+      );
+    }
+
+    // ---------------------------------------------------------
+    // LOAD UPDATED ORDER DATA
+    // ---------------------------------------------------------
+
+    const updatedOrderResult = await client.query(
+      `
+        SELECT
+          delivery_started_at AS "deliveryStartedAt",
+          estimated_arrival_at AS "estimatedArrivalAt",
+          delivery_completed_at AS "deliveryCompletedAt"
+        FROM orders
+        WHERE id = $1
+      `,
+      [order.id],
+    );
+
+    const timestamps = updatedOrderResult.rows[0];
+
+    const deliveryAddress = await findDeliveryAddress(
+      client,
+      order.deliveryAddressId,
+    );
+
+    const deliveryRoute = await findLatestDeliveryRoute(
+      client,
+      order.id,
+    );
 
     await client.query("COMMIT");
 
@@ -673,30 +776,34 @@ if (status === "completed") {
       id: order.id,
       clientId: order.clientId,
       status,
-      address:
-        deliveryAddress?.address ?? "—",
+      address: deliveryAddress?.address ?? "—",
       eta: order.eta ?? "—",
       vehicleId: order.vehicleId,
       driverId: order.driverId,
 
+      deliveryStartedAt:
+        timestamps?.deliveryStartedAt ?? null,
+
+      estimatedArrivalAt:
+        timestamps?.estimatedArrivalAt ?? null,
+
+      deliveryCompletedAt:
+        timestamps?.deliveryCompletedAt ?? null,
+
       deliveryAddress: {
         id: order.deliveryAddressId,
-        latitude:
-          deliveryAddress?.latitude ?? null,
-        longitude:
-          deliveryAddress?.longitude ?? null,
+        latitude: deliveryAddress?.latitude ?? null,
+        longitude: deliveryAddress?.longitude ?? null,
       },
 
       deliveryRoute:
-        createDeliveryRouteResponse(
-          deliveryRoute,
-        ),
+        createDeliveryRouteResponse(deliveryRoute),
     };
   } catch (error) {
     try {
       await client.query("ROLLBACK");
     } catch {
-      // ignore rollback error
+      // Игнорируем ошибку отката транзакции.
     }
 
     throw error;
@@ -704,6 +811,7 @@ if (status === "completed") {
     client.release();
   }
 }
+
 
 // -----------------------------------------------------------------------------
 // DELIVERY PROGRESS

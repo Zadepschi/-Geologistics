@@ -157,3 +157,11 @@ CREATE TABLE IF NOT EXISTS activity_events (
 
 CREATE INDEX IF NOT EXISTS idx_activity_events_created_at
   ON activity_events(created_at DESC);
+
+
+
+  
+ALTER TABLE orders
+  ADD COLUMN IF NOT EXISTS delivery_started_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS estimated_arrival_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS delivery_completed_at TIMESTAMPTZ;

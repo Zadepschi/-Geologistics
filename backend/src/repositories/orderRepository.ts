@@ -16,7 +16,10 @@ export async function findOrders(
       da.address,
       o.eta,
       o.vehicle_id AS "vehicleId",
-      o.driver_id AS "driverId"
+      o.driver_id AS "driverId",
+      o.delivery_started_at AS "deliveryStartedAt",
+      o.estimated_arrival_at AS "estimatedArrivalAt",
+      o.delivery_completed_at AS "deliveryCompletedAt"
     FROM orders o
     JOIN delivery_addresses da
       ON da.id = o.delivery_address_id
@@ -454,18 +457,35 @@ export async function updateOrderStatus(
   client: PoolClient,
   orderId: string,
   status: string,
+  estimatedArrivalAt?: Date,
 ) {
   await client.query(
     `
       UPDATE orders
       SET
-        status = $1
+status = $1::varchar,
+
+delivery_started_at = CASE
+WHEN $1::varchar = 'in-progress'
+THEN COALESCE(delivery_started_at, NOW())
+ELSE delivery_started_at
+END,
+
+estimated_arrival_at = CASE
+WHEN $1::varchar = 'in-progress'
+THEN COALESCE(estimated_arrival_at, $3::timestamptz)
+ELSE estimated_arrival_at
+END,
+
+delivery_completed_at = CASE
+WHEN $1::varchar = 'completed'
+THEN COALESCE(delivery_completed_at, NOW())
+ELSE delivery_completed_at
+END
+
       WHERE id = $2
     `,
-    [
-      status,
-      orderId,
-    ],
+    [status, orderId, estimatedArrivalAt ?? null],
   );
 }
 
