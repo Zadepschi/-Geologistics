@@ -16,7 +16,7 @@ import deliveryRouteRoutes from "./routes/deliveryRouteRoutes.js";
 import { updateOrderStatus } from "./services/orderService.js";
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const DELIVERY_CHECK_INTERVAL_MS = 30_000;
 
 app.use(cors());
