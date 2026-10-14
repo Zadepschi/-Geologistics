@@ -1,3 +1,6 @@
+
+import { apiFetch } from "./api";
+
 export type Notification = {
   id: number;
   text: string;
@@ -5,7 +8,7 @@ export type Notification = {
 };
 
 export async function fetchNotifications(): Promise<Notification[]> {
-  const res = await fetch("/api/notifications");
+  const res = await apiFetch("/api/notifications");
 
   if (!res.ok) {
     throw new Error("Failed to fetch notifications");
@@ -15,9 +18,9 @@ export async function fetchNotifications(): Promise<Notification[]> {
 }
 
 export async function markNotificationAsRead(
-  id: number
+  id: number,
 ): Promise<Notification> {
-  const res = await fetch(`/api/notifications/${id}/read`, {
+  const res = await apiFetch(`/api/notifications/${id}/read`, {
     method: "PATCH",
   });
 

@@ -1,7 +1,9 @@
+
 import type { Vehicle } from "@/entities/vehicle/model/types";
+import { apiFetch } from "./api";
 
 export async function fetchVehicles(): Promise<Vehicle[]> {
-  const res = await fetch("/api/vehicles");
+  const res = await apiFetch("/api/vehicles");
 
   if (!res.ok) {
     throw new Error("Failed to fetch vehicles");
@@ -24,7 +26,7 @@ export async function createVehicle(data: {
     updatedAt?: string | null;
   };
 }): Promise<Vehicle> {
-  const res = await fetch("/api/vehicles", {
+  const res = await apiFetch("/api/vehicles", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -38,12 +40,11 @@ export async function createVehicle(data: {
     console.error(
       "Create vehicle API error:",
       res.status,
-      errorText
+      errorText,
     );
 
     throw new Error(
-      errorText ||
-        `Failed to create vehicle (${res.status})`
+      errorText || `Failed to create vehicle (${res.status})`,
     );
   }
 
@@ -65,9 +66,9 @@ export async function updateVehicle(
       updatedAt?: string | null;
     };
     isArchived?: boolean;
-  }
+  },
 ): Promise<Vehicle> {
-  const res = await fetch(`/api/vehicles/${id}`, {
+  const res = await apiFetch(`/api/vehicles/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -81,12 +82,11 @@ export async function updateVehicle(
     console.error(
       "Update vehicle API error:",
       res.status,
-      errorText
+      errorText,
     );
 
     throw new Error(
-      errorText ||
-        `Failed to update vehicle (${res.status})`
+      errorText || `Failed to update vehicle (${res.status})`,
     );
   }
 
@@ -95,18 +95,15 @@ export async function updateVehicle(
 
 export async function archiveVehicle(
   id: string,
-  isArchived = true
+  isArchived = true,
 ): Promise<Vehicle> {
-  const res = await fetch(
-    `/api/vehicles/${id}/archive`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ isArchived }),
-    }
-  );
+  const res = await apiFetch(`/api/vehicles/${id}/archive`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ isArchived }),
+  });
 
   if (!res.ok) {
     const errorText = await res.text();
@@ -114,17 +111,16 @@ export async function archiveVehicle(
     console.error(
       "Archive vehicle API error:",
       res.status,
-      errorText
+      errorText,
     );
 
     throw new Error(
       errorText ||
         (isArchived
           ? "Failed to archive vehicle"
-          : "Failed to restore vehicle")
+          : "Failed to restore vehicle"),
     );
   }
 
   return res.json();
 }
-

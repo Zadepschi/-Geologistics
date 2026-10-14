@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/shared/ui/card/Card";
 import styles from "./RecentActivity.module.scss";
+import { apiFetch } from "@/shared/api/api";
 
 type Activity = {
   id: number;
@@ -25,7 +26,7 @@ export const RecentActivity = () => {
 
     const fetchActivities = async () => {
       try {
-        const response = await fetch("/api/activities");
+        const response = await apiFetch("/api/activities");
 
         if (!response.ok) {
           throw new Error("Failed to fetch activities");

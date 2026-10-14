@@ -1,7 +1,9 @@
+
 import type { Driver } from "@/entities/driver";
+import { apiFetch } from "./api";
 
 export async function fetchDrivers(): Promise<Driver[]> {
-  const res = await fetch("/api/drivers");
+  const res = await apiFetch("/api/drivers");
 
   if (!res.ok) {
     throw new Error("Failed to fetch drivers");
@@ -17,7 +19,7 @@ export async function createDriver(data: {
   status: Driver["status"];
   vehicleId?: string | null;
 }): Promise<Driver> {
-  const res = await fetch("/api/drivers", {
+  const res = await apiFetch("/api/drivers", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -40,9 +42,9 @@ export async function updateDriver(
     status: Driver["status"];
     vehicleId?: string | null;
     isArchived?: boolean;
-  }
+  },
 ): Promise<Driver> {
-  const res = await fetch(`/api/drivers/${id}`, {
+  const res = await apiFetch(`/api/drivers/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -59,26 +61,23 @@ export async function updateDriver(
 
 export async function archiveDriver(
   id: string,
-  isArchived = true
+  isArchived = true,
 ): Promise<Driver> {
-  const res = await fetch(
-    `/api/drivers/${id}/archive`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        isArchived,
-      }),
-    }
-  );
+  const res = await apiFetch(`/api/drivers/${id}/archive`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      isArchived,
+    }),
+  });
 
   if (!res.ok) {
     throw new Error(
       isArchived
         ? "Failed to archive driver"
-        : "Failed to restore driver"
+        : "Failed to restore driver",
     );
   }
 

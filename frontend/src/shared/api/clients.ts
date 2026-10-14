@@ -1,7 +1,9 @@
+
 import type { Client } from "@/entities/client";
+import { apiFetch } from "./api";
 
 export async function fetchClients(): Promise<Client[]> {
-  const res = await fetch("/api/clients");
+  const res = await apiFetch("/api/clients");
 
   if (!res.ok) {
     throw new Error("Failed to fetch clients");
@@ -16,7 +18,7 @@ export async function createClient(data: {
   email: string;
   address: string;
 }): Promise<Client> {
-  const res = await fetch("/api/clients", {
+  const res = await apiFetch("/api/clients", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -39,9 +41,9 @@ export async function updateClient(
     email: string;
     address: string;
     isArchived?: boolean;
-  }
+  },
 ): Promise<Client> {
-  const res = await fetch(`/api/clients/${id}`, {
+  const res = await apiFetch(`/api/clients/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -58,20 +60,17 @@ export async function updateClient(
 
 export async function archiveClient(
   id: string,
-  isArchived = true
+  isArchived = true,
 ): Promise<Client> {
-  const res = await fetch(
-    `/api/clients/${id}/archive`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        isArchived,
-      }),
+  const res = await apiFetch(`/api/clients/${id}/archive`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
     },
-  );
+    body: JSON.stringify({
+      isArchived,
+    }),
+  });
 
   if (!res.ok) {
     throw new Error(
