@@ -7,6 +7,7 @@ import { useMapThemeStore } from "@/features/switch-map-theme/model/store";
 
 import "mapbox-gl/dist/mapbox-gl.css";
 import styles from "./HistoryMap.module.scss";
+import { apiFetch } from "../../../shared/api/api";
 
 type HistoryRoute = {
   id: number;
@@ -74,10 +75,10 @@ export const HistoryMap = ({ order }: HistoryMapProps) => {
       try {
         setError(null);
 
-        const response = await fetch(
-          "/api/orders/delivery-routes/history",
-          { signal: controller.signal },
-        );
+const response = await apiFetch(
+  "/api/orders/delivery-routes/history",
+  { signal: controller.signal },
+);
 
         if (!response.ok) {
           throw new Error(
