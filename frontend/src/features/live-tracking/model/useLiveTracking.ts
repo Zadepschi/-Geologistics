@@ -6,46 +6,7 @@ import { useFleetStore } from "@/shared/store/fleet";
 
 const PROGRESS_INTERVAL_MS = 700;
 
-const STEP_INTERVAL_MS = 700;
 
-const calculateEtaMinutes = (
-  
-  pathLength: number,
-  currentPathIndex: number,
-  deliveryCompleted: boolean
-): number => {
-  if (
-    deliveryCompleted ||
-    pathLength < 2
-  ) {
-    return 0;
-  }
-
-  const remainingPoints =
-    Math.max(
-      0,
-      pathLength -
-        1 -
-        currentPathIndex
-    );
-
-  if (
-    remainingPoints <= 0
-  ) {
-    return 0;
-  }
-
-  const remainingMs =
-    remainingPoints *
-    STEP_INTERVAL_MS;
-
-  return Math.max(
-    1,
-    Math.ceil(
-      remainingMs / 60000
-    )
-  );
-};
 
 export const useLiveTracking = () => {
   useEffect(() => {
@@ -176,18 +137,15 @@ export const useLiveTracking = () => {
                         1
                     );
 
-                  /*
-                   * ETA is calculated from the
-                   * remaining route points.
-                   *
-                   * 1 point = 700 ms.
-                   */
-                  const etaMinutes =
-                    calculateEtaMinutes(
-                      route.path.length,
-                      currentPathIndex,
-                      deliveryCompleted
-                    );
+               /*
+ * ETA is calculated by the backend
+ * using the remaining route distance.
+ *
+ * Completed deliveries have zero ETA.
+ */
+const etaMinutes = deliveryCompleted
+  ? 0
+  : backendRoute.etaMinutes;
 
                   useFleetStore
                     .getState()

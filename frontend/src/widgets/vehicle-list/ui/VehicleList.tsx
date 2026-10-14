@@ -132,6 +132,7 @@ export const VehicleList = () => {
     setVehicleToArchive(vehicle);
   };
 
+  
   return (
     <>
       <Card className={styles.listCard}>

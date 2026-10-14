@@ -12,12 +12,17 @@ type Activity = {
   createdAt: string;
 };
 
+const PAGE_SIZE = 8;
+
 export const RecentActivity = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchActivities = async () => {
       try {
         const response = await fetch("/api/activities");
@@ -27,27 +32,47 @@ export const RecentActivity = () => {
         }
 
         const data: Activity[] = await response.json();
-        setActivities(data);
-        setError(false);
+
+        if (isMounted) {
+          setActivities(data);
+          setError(false);
+        }
       } catch (err) {
         console.error("Failed to load activities:", err);
-        setError(true);
+
+        if (isMounted) {
+          setError(true);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     void fetchActivities();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const formatTime = (date: string) => {
+    const minutes = Math.round(
+      (new Date(date).getTime() - Date.now()) / 60000
+    );
+
     return new Intl.RelativeTimeFormat("en", {
       numeric: "auto",
-    }).format(
-      Math.round(
-        (new Date(date).getTime() - Date.now()) / 60000,
-      ),
-      "minute",
+    }).format(minutes, "minute");
+  };
+
+  const visibleActivities = activities.slice(0, visibleCount);
+  const hasMore = visibleCount < activities.length;
+
+  const handleLoadMore = () => {
+    setVisibleCount((count) =>
+      Math.min(count + PAGE_SIZE, activities.length)
     );
   };
 
@@ -55,17 +80,26 @@ export const RecentActivity = () => {
     <Card className={styles.card}>
       <div className={styles.header}>
         <h2>Recent Activity</h2>
+        {!loading && !error && (
+          <span className={styles.count}>
+            {activities.length}
+          </span>
+        )}
       </div>
 
       <div className={styles.list}>
         {loading ? (
-          <p>Loading activity...</p>
+          <p className={styles.message}>Loading activity...</p>
         ) : error ? (
-          <p>Failed to load activity.</p>
+          <p className={styles.message}>
+            Failed to load activity.
+          </p>
         ) : activities.length === 0 ? (
-          <p>No recent activity yet.</p>
+          <p className={styles.message}>
+            No recent activity yet.
+          </p>
         ) : (
-          activities.map((activity) => (
+          visibleActivities.map((activity) => (
             <div key={activity.id} className={styles.item}>
               <div className={styles.dot} />
 
@@ -81,6 +115,18 @@ export const RecentActivity = () => {
           ))
         )}
       </div>
+
+      {!loading && !error && hasMore && (
+        <div className={styles.footer}>
+          <button
+            type="button"
+            className={styles.loadMore}
+            onClick={handleLoadMore}
+          >
+            Load More
+          </button>
+        </div>
+      )}
     </Card>
   );
 };

@@ -103,7 +103,7 @@ function isValidCoordinate(value: unknown): value is number {
 
 type Coordinate = [number, number]; // [longitude, latitude]
 
-const SIMULATION_SPEED_KMH = 40;
+const SIMULATION_SPEED_KMH = 160;
 const EARTH_RADIUS_KM = 6371;
 
 function distanceBetweenPointsKm(
@@ -129,13 +129,19 @@ function distanceBetweenPointsKm(
 }
 
 
-function segmentTravelMs(a: Coordinate, b: Coordinate): number {
+function segmentTravelMs(
+  a: Coordinate,
+  b: Coordinate,
+): number {
   const distanceKm = distanceBetweenPointsKm(a, b);
 
   return Math.max(
     1,
     Math.ceil(
-      (distanceKm / SIMULATION_SPEED_KMH) * 60 * 60 * 1000,
+      (distanceKm / SIMULATION_SPEED_KMH) *
+        60 *
+        60 *
+        1000,
     ),
   );
 }
@@ -831,17 +837,13 @@ export async function advanceOrderProgress(
     );
 
     if (!order) {
-      throw new OrderServiceError(
-        "Order not found",
-        404,
-      );
+      throw new OrderServiceError("Order not found", 404);
     }
 
-    const route =
-      await findLatestDeliveryRouteForUpdate(
-        client,
-        order.id,
-      );
+    const route = await findLatestDeliveryRouteForUpdate(
+      client,
+      order.id,
+    );
 
     if (!route) {
       await client.query("ROLLBACK");
@@ -860,21 +862,34 @@ export async function advanceOrderProgress(
       );
     }
 
-    const createProgressRoute = () => ({
-      id: route.id,
-      orderId: route.orderId,
-      vehicleId: route.vehicleId,
-      driverId: route.driverId,
-      currentPathIndex:
-        Number(route.currentPathIndex) || 0,
-      startedAt: route.startedAt,
-      lastProgressAt:
-        route.lastProgressAt,
-      completedAt:
-        route.completedAt,
-    });
+    const path = route.path as Coordinate[];
+    const currentPathIndex = Math.max(
+      0,
+      Number(route.currentPathIndex) || 0,
+    );
 
-    // Уже завершено.
+    const createProgressRoute = () => {
+      const completed =
+        Boolean(route.completedAt) ||
+        order.status === "completed";
+
+      const remainingMs = completed
+        ? 0
+        : remainingTravelMs(path, currentPathIndex);
+
+      return {
+        id: route.id,
+        orderId: route.orderId,
+        vehicleId: route.vehicleId,
+        driverId: route.driverId,
+        currentPathIndex,
+        startedAt: route.startedAt,
+        lastProgressAt: route.lastProgressAt,
+        completedAt: route.completedAt,
+        etaMinutes: Math.ceil(remainingMs / 60_000),
+      };
+    };
+
     if (
       order.status === "completed" ||
       route.completedAt
@@ -895,38 +910,50 @@ export async function advanceOrderProgress(
       );
     }
 
-    const path =
-      route.path as [number, number][];
-
     if (
       !Array.isArray(path) ||
-      path.length === 0
+      path.length < 2 ||
+      !path.every(
+        (point) =>
+          Array.isArray(point) &&
+          point.length === 2 &&
+          Number.isFinite(point[0]) &&
+          Number.isFinite(point[1]),
+      )
     ) {
       throw new OrderServiceError(
-        "Delivery route has an empty path",
+        "Delivery route has an invalid path",
         500,
       );
     }
 
+    if (currentPathIndex >= path.length - 1) {
+      console.warn("[DELIVERY DEBUG] Index already at route end", {
+        orderId: order.id,
+        currentPathIndex,
+        pathLength: path.length,
+      });
+
+      throw new OrderServiceError(
+        "Route index is already at the final point but route is not completed",
+        409,
+      );
+    }
+
     const STEP_INTERVAL_MS = 700;
-
-    const lastProgressAt =
-      new Date(
-        route.lastProgressAt,
-      ).getTime();
-
+    const lastProgressAt = new Date(route.lastProgressAt).getTime();
     const now = Date.now();
 
-    const elapsedMs = Math.max(
-      0,
-      now - lastProgressAt,
-    );
+    if (!Number.isFinite(lastProgressAt)) {
+      throw new OrderServiceError(
+        "Invalid route lastProgressAt timestamp",
+        500,
+      );
+    }
 
-    const elapsedSteps = Math.floor(
-      elapsedMs / STEP_INTERVAL_MS,
-    );
+    const elapsedMs = Math.max(0, now - lastProgressAt);
 
-    if (elapsedSteps <= 0) {
+    if (elapsedMs < STEP_INTERVAL_MS) {
       await client.query("COMMIT");
 
       return {
@@ -936,89 +963,65 @@ export async function advanceOrderProgress(
       };
     }
 
-    const currentPathIndex =
-      Number(route.currentPathIndex) || 0;
+    // За один вызов продвигаемся только на одну точку.
+    const nextPathIndex = currentPathIndex + 1;
+    const nextPoint = path[nextPathIndex];
+    const isCompleted = nextPathIndex === path.length - 1;
 
-    const nextPathIndex = Math.min(
-      currentPathIndex + elapsedSteps,
-      path.length - 1,
-    );
+    const nextProgressAt = new Date(now);
+    const completedPath = path.slice(0, nextPathIndex + 1);
 
-    const consumedSteps =
-      nextPathIndex -
-      currentPathIndex;
+    console.log("[DELIVERY DEBUG]", {
+      orderId: order.id,
+      currentPathIndex,
+      nextPathIndex,
+      pathLength: path.length,
+      isCompleted,
+      elapsedMs,
+    });
 
-    const isCompleted =
-      nextPathIndex >= path.length - 1;
-
-    const nextPoint =
-      path[nextPathIndex];
-
-    const nextProgressAt =
-      new Date(
-        lastProgressAt +
-          consumedSteps *
-            STEP_INTERVAL_MS,
+    if (isCompleted) {
+      await completeDeliveryRoute(
+        client,
+        route.id,
+        nextPathIndex,
+        completedPath,
+        nextProgressAt,
       );
 
-    const completedPath =
-      path.slice(
-        0,
-        nextPathIndex + 1,
+      await updateOrderStatusRepository(
+        client,
+        order.id,
+        "completed",
       );
 
-    // -------------------------------------------------------------------------
-    // ROUTE COMPLETED
-    // -------------------------------------------------------------------------
+      await setVehicleStatus(
+        client,
+        order.vehicleId,
+        "idle",
+        nextPoint[1],
+        nextPoint[0],
+      );
 
-   if (isCompleted) {
-  await completeDeliveryRoute(
-    client,
-    route.id,
-    nextPathIndex,
-    completedPath,
-    nextProgressAt,
-  );
+      await setDriverStatus(
+        client,
+        order.driverId,
+        "available",
+      );
 
-  await updateOrderStatusRepository(
-    client,
-    order.id,
-    "completed",
-  );
+      await createActivity(client, {
+        type: "delivery_completed",
+        title: "Delivery completed",
+        description: `Order ${order.id} completed delivery`,
+        orderId: order.id,
+        vehicleId: order.vehicleId,
+      });
 
-  await setVehicleStatus(
-    client,
-    order.vehicleId,
-    "idle",
-    nextPoint[1],
-    nextPoint[0],
-  );
-
-  await setDriverStatus(
-    client,
-    order.driverId,
-    "available",
-  );
-
-  // Добавляем событие в Recent Activity.
-  await createActivity(client, {
-    type: "delivery_completed",
-    title: "Delivery completed",
-    description: `Order ${order.id} completed delivery`,
-    orderId: order.id,
-    vehicleId: order.vehicleId,
-  });
-
-  // Добавляем уведомление.
-  await createNotification(
-    client,
-    `Delivery completed: order ${order.id}`,
-  );
-} else {
-      // -----------------------------------------------------------------------
-      // NORMAL PROGRESS
-      // -----------------------------------------------------------------------
-
+      await createNotification(
+        client,
+        `Delivery completed: order ${order.id}`,
+      );
+    } else {
       await updateDeliveryRouteProgress(
         client,
         route.id,
@@ -1036,26 +1039,35 @@ export async function advanceOrderProgress(
       );
     }
 
-    const updatedRoute =
-      await findUpdatedDeliveryRoute(
-        client,
-        route.id,
-      );
+    const updatedRoute = await findUpdatedDeliveryRoute(
+      client,
+      route.id,
+    );
+
+    const etaMinutes = isCompleted
+      ? 0
+      : Math.ceil(
+          remainingTravelMs(
+            path,
+            nextPathIndex,
+          ) / 60_000,
+        );
 
     await client.query("COMMIT");
 
     return {
-      status: isCompleted
-        ? "completed"
-        : "in-progress",
+      status: isCompleted ? "completed" : "in-progress",
       completed: isCompleted,
-      route: updatedRoute,
+      route: {
+        ...updatedRoute,
+        etaMinutes,
+      },
     };
   } catch (error) {
     try {
       await client.query("ROLLBACK");
     } catch {
-      // ignore rollback error
+      // Ignore rollback errors.
     }
 
     throw error;

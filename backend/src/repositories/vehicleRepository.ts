@@ -16,8 +16,7 @@ export async function findAllVehicles() {
       is_archived AS "isArchived"
     FROM vehicles
     WHERE is_active = TRUE
-  AND is_archived = FALSE
-ORDER BY id
+    ORDER BY id
   `);
 
   return result.rows;

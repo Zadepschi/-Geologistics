@@ -35,6 +35,10 @@ const toneIcons: Record<KpiTone, LucideIcon> = {
 export const KpiCards = () => {
   const vehicles = useFleetStore((state) => state.vehicles);
 
+  const activeVehicles = vehicles.filter(
+  (vehicle) => !vehicle.isArchived
+);
+
   const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
@@ -74,12 +78,12 @@ export const KpiCards = () => {
       : 0;
 
   const kpis: KpiItem[] = [
-    {
-      title: "Vehicles",
-      value: String(vehicles.length),
-      change: "Total fleet",
-      tone: "green",
-    },
+   {
+  title: "Vehicles",
+  value: String(activeVehicles.length),
+  change: "Total fleet",
+  tone: "green",
+},
     {
       title: "Orders",
       value: String(totalOrders),

@@ -200,3 +200,43 @@
   color: #64748b;
   font-size: 14px;
 }
+
+
+.search {
+  flex-shrink: 0;
+  margin-bottom: 14px;
+
+  input {
+    width: 100%;
+    height: 38px;
+    box-sizing: border-box;
+    padding: 0 12px;
+    border: 1px solid #29384c;
+    border-radius: 7px;
+    outline: none;
+    background: #0f1b2b;
+    color: #f4f7fb;
+    font: inherit;
+    font-size: 13px;
+    transition:
+      border-color 0.2s ease,
+      background 0.2s ease;
+
+    &::placeholder {
+      color: #66758a;
+    }
+
+    &:focus {
+      border-color: rgba(0, 200, 170, 0.6);
+      background: #111f31;
+    }
+  }
+}
+
+.stickyHeader {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding-top: 8px;
+  background: #0b1625;
+}

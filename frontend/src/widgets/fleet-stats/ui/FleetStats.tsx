@@ -1,4 +1,3 @@
-
 import { Card } from "@/shared/ui/card/Card";
 import { useFleetStore } from "@/shared/store/fleet";
 import styles from "./FleetStats.module.scss";
@@ -6,32 +5,41 @@ import styles from "./FleetStats.module.scss";
 export const FleetStats = () => {
   const vehicles = useFleetStore((s) => s.vehicles);
 
+  const activeVehicles = vehicles.filter(
+    (vehicle) =>
+      !vehicle.isArchived &&
+      (vehicle.status === "on-route" ||
+        vehicle.status === "delayed") &&
+      Boolean(vehicle.route) &&
+      !vehicle.route?.deliveryCompleted
+  );
+
+  const availableVehicles = vehicles.filter(
+    (vehicle) => !vehicle.isArchived
+  );
+
   const stats = [
     {
-      label: "Total",
-      value: vehicles.length,
-    },
-    {
       label: "On route",
-      value: vehicles.filter(
+      value: activeVehicles.filter(
         (vehicle) => vehicle.status === "on-route"
       ).length,
     },
     {
       label: "Idle",
-      value: vehicles.filter(
+      value: availableVehicles.filter(
         (vehicle) => vehicle.status === "idle"
       ).length,
     },
     {
       label: "Delayed",
-      value: vehicles.filter(
+      value: activeVehicles.filter(
         (vehicle) => vehicle.status === "delayed"
       ).length,
     },
     {
       label: "Maintenance",
-      value: vehicles.filter(
+      value: availableVehicles.filter(
         (vehicle) => vehicle.status === "maintenance"
       ).length,
     },
@@ -40,13 +48,7 @@ export const FleetStats = () => {
   return (
     <Card className={styles.card}>
       <div className={styles.header}>
-        <div>
-          <h2>Fleet Overview</h2>
-        </div>
-
-        <span className={styles.total}>
-          {vehicles.length} vehicles
-        </span>
+        <h2>Fleet Status</h2>
       </div>
 
       <div className={styles.stats}>

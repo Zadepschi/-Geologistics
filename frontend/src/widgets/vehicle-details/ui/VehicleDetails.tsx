@@ -136,14 +136,6 @@ export const VehicleDetails = () => {
             </strong>
           </div>
 
-          <div>
-            <span>Speed</span>
-            <strong>
-              {selectedVehicle.telemetry
-                .speedKmH ?? 0}{" "}
-              km/h
-            </strong>
-          </div>
 
           <div>
             <span>Latitude</span>

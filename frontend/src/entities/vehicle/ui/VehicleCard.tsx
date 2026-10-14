@@ -10,14 +10,31 @@ interface VehicleCardProps {
   onClick?: () => void;
 }
 
+
+const formatEta = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  if (hours === 0) {
+    return `${remainingMinutes} min`;
+  }
+
+  if (remainingMinutes === 0) {
+    return `${hours} h`;
+  }
+
+  return `${hours} h ${remainingMinutes} min`;
+};
+
 const getMetaText = (vehicle: Vehicle) => {
   const { route, status } = vehicle;
+  const eta = route?.etaMinutes;
 
   switch (status) {
     case "on-route":
-  return route?.etaMinutes !== undefined
-    ? `On route • ${route.etaMinutes} min`
-    : "On route";
+      return eta !== undefined
+        ? `On route • ${formatEta(eta)}`
+        : "On route";
 
     case "idle":
       return "Idle • Standby";
@@ -26,12 +43,15 @@ const getMetaText = (vehicle: Vehicle) => {
       return "Maintenance";
 
     case "delayed":
-      return route?.etaMinutes ? `Delayed • ${route.etaMinutes} min` : "Delayed";
+      return eta !== undefined
+        ? `Delayed • ${formatEta(eta)}`
+        : "Delayed";
 
     default:
       return status;
   }
 };
+
 
 export const VehicleCard = ({
   vehicle,

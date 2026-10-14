@@ -1,5 +1,4 @@
 import { Card } from "@/shared/ui/card/Card";
-
 import { useEffect, useState } from "react";
 
 import type { Client } from "@/entities/client";
@@ -9,7 +8,6 @@ import type { Driver } from "@/entities/driver";
 import { fetchDrivers } from "@/shared/api/drivers";
 
 import type { Order } from "@/entities/order";
-
 import {
   fetchOrders,
   updateOrderStatus,
@@ -29,44 +27,52 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 type OrderView = "active" | "completed";
 
-
 interface DispatchOrdersProps {
   onEditOrder: (order: Order) => void;
 }
 
-export const DispatchOrders = ({
-  onEditOrder,
-}: DispatchOrdersProps) => {
+/**
+ * Converts values to searchable text.
+ * Handles nested objects and arrays without assuming a fixed Order schema.
+ */
+const normalizeSearchValue = (value: unknown): string => {
+  if (value == null) {
+    return "";
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(normalizeSearchValue).join(" ").toLowerCase();
+  }
+
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>)
+      .map(normalizeSearchValue)
+      .join(" ")
+      .toLowerCase();
+  }
+
+  return String(value).toLowerCase();
+};
+
+export const DispatchOrders = ({ onEditOrder }: DispatchOrdersProps) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
 
-  const [orderView, setOrderView] =
-    useState<OrderView>("active");
+  const [orderView, setOrderView] = useState<OrderView>("active");
+  const [assignOrder, setAssignOrder] = useState<Order | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
 
-  const [assignOrder, setAssignOrder] =
-    useState<Order | null>(null);
-
-  const [selectedVehicleId, setSelectedVehicleId] =
-    useState("");
-
-  const [isAssigning, setIsAssigning] =
-    useState(false);
-
-  const [assignError, setAssignError] =
-    useState("");
-
-  const [actionErrors, setActionErrors] =
-    useState<Record<string, string>>({});
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [assignError, setAssignError] = useState("");
+  const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetchClients()
       .then(setClients)
       .catch((error) => {
-        console.error(
-          "Failed to load clients",
-          error
-        );
+        console.error("Failed to load clients", error);
       });
   }, []);
 
@@ -74,10 +80,7 @@ export const DispatchOrders = ({
     fetchDrivers()
       .then(setDrivers)
       .catch((error) => {
-        console.error(
-          "Failed to load drivers",
-          error
-        );
+        console.error("Failed to load drivers", error);
       });
   }, []);
 
@@ -85,21 +88,12 @@ export const DispatchOrders = ({
     fetchOrders()
       .then(setOrders)
       .catch((error) => {
-        console.error(
-          "Failed to load orders",
-          error
-        );
+        console.error("Failed to load orders", error);
       });
   }, []);
 
-  const vehicles = useFleetStore(
-    (state) => state.vehicles
-  );
-
-  const setVehicles = useFleetStore(
-    (state) => state.setVehicles
-  );
-
+  const vehicles = useFleetStore((state) => state.vehicles);
+  const setVehicles = useFleetStore((state) => state.setVehicles);
   const setVehicleRouteState = useFleetStore(
     (state) => state.setVehicleRouteState
   );
@@ -120,63 +114,63 @@ export const DispatchOrders = ({
   );
 
   const visibleOrders =
-    orderView === "active"
-      ? activeOrders
-      : completedOrders;
+    orderView === "active" ? activeOrders : completedOrders;
 
-  const setOrderActionError = (
-    orderId: string,
-    message: string
-  ) => {
+  const query = normalizeSearchValue(search).trim();
+
+  const filteredOrders = visibleOrders.filter((order) => {
+    const client = clients.find((item) => item.id === order.clientId);
+    const driver = drivers.find((item) => item.id === order.driverId);
+    const vehicle = vehicles.find((item) => item.id === order.vehicleId);
+
+    // Search all fields on the order and its related client, driver and vehicle.
+    const searchableText = normalizeSearchValue({
+      order,
+      client,
+      driver,
+      vehicle,
+    });
+
+    return searchableText.includes(query);
+  });
+
+  const setOrderActionError = (orderId: string, message: string) => {
     setActionErrors((current) => ({
       ...current,
       [orderId]: message,
     }));
   };
 
-const clearOrderActionError = (orderId: string) => {
-  setActionErrors((current) => {
-    const next = { ...current };
-    delete next[orderId];
-    return next;
-  });
-};
+  const clearOrderActionError = (orderId: string) => {
+    setActionErrors((current) => {
+      const next = { ...current };
+      delete next[orderId];
+      return next;
+    });
+  };
 
-  const handleStartDelivery = async (
-    order: Order
-  ) => {
+  const handleStartDelivery = async (order: Order) => {
     clearOrderActionError(order.id);
 
     try {
-      const vehicle = vehicles.find(
-        (item) => item.id === order.vehicleId
-      );
+      const vehicle = vehicles.find((item) => item.id === order.vehicleId);
 
       if (!vehicle) {
-        throw new Error(
-          "Assigned vehicle was not found."
-        );
+        throw new Error("Assigned vehicle was not found.");
       }
 
       if (!MAPBOX_TOKEN) {
-        throw new Error(
-          "Mapbox token is missing."
-        );
+        throw new Error("Mapbox token is missing.");
       }
 
       if (
         typeof vehicle.telemetry.lat !== "number" ||
         typeof vehicle.telemetry.lng !== "number"
       ) {
-        throw new Error(
-          "Assigned vehicle does not have a valid location."
-        );
+        throw new Error("Assigned vehicle does not have a valid location.");
       }
 
-      const destination =
-        await geocodeAddress(
-          order.address
-        );
+      const destination = await geocodeAddress(order.address);
 
       const start: [number, number] = [
         vehicle.telemetry.lng,
@@ -188,50 +182,33 @@ const clearOrderActionError = (orderId: string) => {
         destination.latitude,
       ];
 
-      const route = await fetchStreetRoute(
-        start,
-        finish,
-        MAPBOX_TOKEN
-      );
+      const route = await fetchStreetRoute(start, finish, MAPBOX_TOKEN);
 
       if (route.length < 2) {
-        throw new Error(
-          "Route for delivery is empty."
-        );
+        throw new Error("Route for delivery is empty.");
       }
 
       /*
        * PostgreSQL is the source of truth.
-       *
-       * The route is saved by the backend together
-       * with the transition to in-progress.
+       * The route is saved by the backend together with the transition to in-progress.
        */
-      const updatedOrder =
-        await updateOrderStatus(
-          order.id,
-          "in-progress",
-          {
-            start,
-            finish,
-            path: route,
-          }
-        );
+      const updatedOrder = await updateOrderStatus(order.id, "in-progress", {
+        start,
+        finish,
+        path: route,
+      });
 
       setOrders((currentOrders) =>
         currentOrders.map((item) =>
-          item.id === updatedOrder.id
-            ? updatedOrder
-            : item
+          item.id === updatedOrder.id ? updatedOrder : item
         )
       );
 
       /*
        * The backend returns the persisted delivery route.
-       * Only after successful persistence do we update
-       * the frontend runtime state.
+       * Only after successful persistence do we update the frontend runtime state.
        */
-      const deliveryRoute =
-        updatedOrder.deliveryRoute;
+      const deliveryRoute = updatedOrder.deliveryRoute;
 
       if (deliveryRoute) {
         const currentPathIndex = Math.max(
@@ -242,69 +219,44 @@ const clearOrderActionError = (orderId: string) => {
           )
         );
 
-        const completedPath =
-          deliveryRoute.completedPath?.length
-            ? deliveryRoute.completedPath
-            : deliveryRoute.path.slice(
-                0,
-                currentPathIndex + 1
-              );
+        const completedPath = deliveryRoute.completedPath?.length
+          ? deliveryRoute.completedPath
+          : deliveryRoute.path.slice(0, currentPathIndex + 1);
 
-        setVehicleRouteState(
-          vehicle.id,
-          {
-            orderId: deliveryRoute.orderId,
-            start: deliveryRoute.start,
-            finish: deliveryRoute.finish,
-            path: deliveryRoute.path,
-            completedPath,
-            currentPathIndex,
-            deliveryCompleted:
-              Boolean(
-                deliveryRoute.completedAt
-              ),
-            etaMinutes: 0,
-          }
-        );
+        setVehicleRouteState(vehicle.id, {
+          orderId: deliveryRoute.orderId,
+          start: deliveryRoute.start,
+          finish: deliveryRoute.finish,
+          path: deliveryRoute.path,
+          completedPath,
+          currentPathIndex,
+          deliveryCompleted: Boolean(deliveryRoute.completedAt),
+          etaMinutes: 0,
+        });
       }
     } catch (error) {
-      console.error(
-        `Failed to start delivery for order ${order.id}`,
-        error
-      );
+      console.error(`Failed to start delivery for order ${order.id}`, error);
 
       setOrderActionError(
         order.id,
-        error instanceof Error
-          ? error.message
-          : "Failed to start delivery."
+        error instanceof Error ? error.message : "Failed to start delivery."
       );
     }
   };
 
-  const handleMarkCompleted = async (
-    order: Order
-  ) => {
+  const handleMarkCompleted = async (order: Order) => {
     clearOrderActionError(order.id);
 
     try {
-      const updatedOrder =
-        await updateOrderStatus(
-          order.id,
-          "completed"
-        );
+      const updatedOrder = await updateOrderStatus(order.id, "completed");
 
       setOrders((currentOrders) =>
         currentOrders.map((item) =>
-          item.id === updatedOrder.id
-            ? updatedOrder
-            : item
+          item.id === updatedOrder.id ? updatedOrder : item
         )
       );
 
-      const vehicle = vehicles.find(
-        (item) => item.id === order.vehicleId
-      );
+      const vehicle = vehicles.find((item) => item.id === order.vehicleId);
 
       if (vehicle) {
         setVehicles(
@@ -329,27 +281,17 @@ const clearOrderActionError = (orderId: string) => {
         );
       }
     } catch (error) {
-      console.error(
-        `Failed to complete order ${order.id}`,
-        error
-      );
+      console.error(`Failed to complete order ${order.id}`, error);
 
       setOrderActionError(
         order.id,
-        error instanceof Error
-          ? error.message
-          : "Failed to complete order."
+        error instanceof Error ? error.message : "Failed to complete order."
       );
     }
   };
 
-  const handleOpenAssignVehicle = (
-    order: Order
-  ) => {
-    if (
-      order.status === "in-progress" ||
-      order.status === "completed"
-    ) {
+  const handleOpenAssignVehicle = (order: Order) => {
+    if (order.status === "in-progress" || order.status === "completed") {
       return;
     }
 
@@ -370,40 +312,29 @@ const clearOrderActionError = (orderId: string) => {
 
   const handleAssignVehicle = async () => {
     if (!assignOrder || !selectedVehicleId) {
-      setAssignError(
-        "Please select a vehicle."
-      );
+      setAssignError("Please select a vehicle.");
       return;
     }
 
     const selectedVehicle = vehicles.find(
-      (vehicle) =>
-        vehicle.id === selectedVehicleId
+      (vehicle) => vehicle.id === selectedVehicleId
     );
 
     if (!selectedVehicle) {
-      setAssignError(
-        "Selected vehicle was not found."
-      );
+      setAssignError("Selected vehicle was not found.");
       return;
     }
 
     if (selectedVehicle.status !== "idle") {
-      setAssignError(
-        "Selected vehicle is no longer available."
-      );
+      setAssignError("Selected vehicle is no longer available.");
       return;
     }
 
     if (
-      typeof selectedVehicle.telemetry.lat !==
-        "number" ||
-      typeof selectedVehicle.telemetry.lng !==
-        "number"
+      typeof selectedVehicle.telemetry.lat !== "number" ||
+      typeof selectedVehicle.telemetry.lng !== "number"
     ) {
-      setAssignError(
-        "Selected vehicle does not have a valid location."
-      );
+      setAssignError("Selected vehicle does not have a valid location.");
       return;
     }
 
@@ -412,23 +343,17 @@ const clearOrderActionError = (orderId: string) => {
 
     try {
       /*
-       * Assigning a vehicle does NOT create or
-       * reset a delivery route.
-       *
-       * The route is created only when the user
-       * presses "Start delivery".
+       * Assigning a vehicle does NOT create or reset a delivery route.
+       * The route is created only when the user presses "Start delivery".
        */
-      const updatedOrder =
-        await updateOrderVehicle(
-          assignOrder.id,
-          selectedVehicleId
-        );
+      const updatedOrder = await updateOrderVehicle(
+        assignOrder.id,
+        selectedVehicleId
+      );
 
       setOrders((currentOrders) =>
         currentOrders.map((order) =>
-          order.id === updatedOrder.id
-            ? updatedOrder
-            : order
+          order.id === updatedOrder.id ? updatedOrder : order
         )
       );
 
@@ -442,9 +367,7 @@ const clearOrderActionError = (orderId: string) => {
       );
 
       setAssignError(
-        error instanceof Error
-          ? error.message
-          : "Failed to assign vehicle."
+        error instanceof Error ? error.message : "Failed to assign vehicle."
       );
     } finally {
       setIsAssigning(false);
@@ -454,6 +377,7 @@ const clearOrderActionError = (orderId: string) => {
   return (
     <>
       <Card className={styles.card}>
+        <div className={styles.stickyHeader}>
         <div className={styles.header}>
           <h2>Orders</h2>
 
@@ -462,13 +386,9 @@ const clearOrderActionError = (orderId: string) => {
               <button
                 type="button"
                 className={
-                  orderView === "active"
-                    ? styles.tabActive
-                    : styles.tab
+                  orderView === "active" ? styles.tabActive : styles.tab
                 }
-                onClick={() =>
-                  setOrderView("active")
-                }
+                onClick={() => setOrderView("active")}
               >
                 Active
                 <span>{activeOrders.length}</span>
@@ -477,40 +397,36 @@ const clearOrderActionError = (orderId: string) => {
               <button
                 type="button"
                 className={
-                  orderView === "completed"
-                    ? styles.tabActive
-                    : styles.tab
+                  orderView === "completed" ? styles.tabActive : styles.tab
                 }
-                onClick={() =>
-                  setOrderView("completed")
-                }
+                onClick={() => setOrderView("completed")}
               >
                 Completed
-                <span>
-                  {completedOrders.length}
-                </span>
+                <span>{completedOrders.length}</span>
               </button>
             </div>
           </div>
         </div>
 
+        <div className={styles.search}>
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search by anything: order, address, client, driver, vehicle..."
+            aria-label="Search orders by any field"
+          />
+        </div>
+        </div>
+
         <div className={styles.list}>
-          {visibleOrders.map((order) => {
-            const assignedVehicle =
-              vehicles.find(
-                (vehicle) =>
-                  vehicle.id === order.vehicleId
-              );
-
-            const driver = drivers.find(
-              (item) =>
-                item.id === order.driverId
+          {filteredOrders.map((order) => {
+            const assignedVehicle = vehicles.find(
+              (vehicle) => vehicle.id === order.vehicleId
             );
 
-            const client = clients.find(
-              (item) =>
-                item.id === order.clientId
-            );
+            const driver = drivers.find((item) => item.id === order.driverId);
+            const client = clients.find((item) => item.id === order.clientId);
 
             const displayedVehicleStatus =
               order.status === "completed"
@@ -522,18 +438,14 @@ const clearOrderActionError = (orderId: string) => {
               order.status !== "completed";
 
             const canStartDelivery =
-              order.status === "assigned" &&
-              !!assignedVehicle;
+              order.status === "assigned" && !!assignedVehicle;
 
-            const canMarkCompleted =
-              order.status !== "completed";
+            const canMarkCompleted = order.status !== "completed";
 
             const canEdit =
-              order.status === "assigned" ||
-              order.status === "delayed";
+              order.status === "assigned" || order.status === "delayed";
 
-            const actionError =
-              actionErrors[order.id];
+            const actionError = actionErrors[order.id];
 
             const hasActions =
               canAssignVehicle ||
@@ -542,42 +454,26 @@ const clearOrderActionError = (orderId: string) => {
               canEdit;
 
             return (
-              <div
-                key={order.id}
-                className={styles.orderCard}
-              >
+              <div key={order.id} className={styles.orderCard}>
                 <div className={styles.top}>
                   <div>
                     <h3>{order.id}</h3>
-
-                    <p>
-                      {client?.name ??
-                        "Unknown client"}
-                    </p>
+                    <p>{client?.name ?? "Unknown client"}</p>
                   </div>
 
-                  <span
-                    className={styles.status}
-                  >
-                    {order.status}
-                  </span>
+                  <span className={styles.status}>{order.status}</span>
                 </div>
 
                 <div className={styles.info}>
                   <div>
                     <span>Address</span>
-
-                    <strong>
-                      {order.address}
-                    </strong>
+                    <strong>{order.address}</strong>
                   </div>
 
                   <div>
                     <span>ETA</span>
-
                     <strong>
-                      {typeof order.eta ===
-                      "string"
+                      {typeof order.eta === "string"
                         ? order.eta.slice(0, 5)
                         : "—"}
                     </strong>
@@ -585,53 +481,30 @@ const clearOrderActionError = (orderId: string) => {
 
                   <div>
                     <span>Vehicle</span>
-
-                    <strong>
-                      {assignedVehicle?.name ??
-                        "Not assigned"}
-                    </strong>
+                    <strong>{assignedVehicle?.name ?? "Not assigned"}</strong>
                   </div>
 
                   <div>
                     <span>Driver</span>
-
-                    <strong>
-                      {driver?.name ??
-                        "Not assigned"}
-                    </strong>
+                    <strong>{driver?.name ?? "Not assigned"}</strong>
                   </div>
 
                   <div>
-                    <span>
-                      Vehicle status
-                    </span>
-
-                    <strong>
-                      {displayedVehicleStatus}
-                    </strong>
+                    <span>Vehicle status</span>
+                    <strong>{displayedVehicleStatus}</strong>
                   </div>
                 </div>
 
                 {actionError && (
-                  <p
-                    className={
-                      styles.actionError
-                    }
-                  >
-                    {actionError}
-                  </p>
+                  <p className={styles.actionError}>{actionError}</p>
                 )}
 
                 {hasActions && (
-                  <div
-                    className={styles.actions}
-                  >
+                  <div className={styles.actions}>
                     {canEdit && (
                       <button
                         type="button"
-                        onClick={() =>
-                          onEditOrder(order)
-                        }
+                        onClick={() => onEditOrder(order)}
                       >
                         Edit
                       </button>
@@ -640,11 +513,7 @@ const clearOrderActionError = (orderId: string) => {
                     {canAssignVehicle && (
                       <button
                         type="button"
-                        onClick={() =>
-                          handleOpenAssignVehicle(
-                            order
-                          )
-                        }
+                        onClick={() => handleOpenAssignVehicle(order)}
                       >
                         Assign vehicle
                       </button>
@@ -653,11 +522,7 @@ const clearOrderActionError = (orderId: string) => {
                     {canStartDelivery && (
                       <button
                         type="button"
-                        onClick={() =>
-                          handleStartDelivery(
-                            order
-                          )
-                        }
+                        onClick={() => handleStartDelivery(order)}
                       >
                         Start delivery
                       </button>
@@ -666,11 +531,7 @@ const clearOrderActionError = (orderId: string) => {
                     {canMarkCompleted && (
                       <button
                         type="button"
-                        onClick={() =>
-                          handleMarkCompleted(
-                            order
-                          )
-                        }
+                        onClick={() => handleMarkCompleted(order)}
                       >
                         Mark completed
                       </button>
@@ -681,11 +542,13 @@ const clearOrderActionError = (orderId: string) => {
             );
           })}
 
-          {visibleOrders.length === 0 && (
+          {filteredOrders.length === 0 && (
             <div className={styles.empty}>
-              {orderView === "active"
-                ? "No active orders."
-                : "No completed orders."}
+              {search.trim()
+                ? "No orders match your search."
+                : orderView === "active"
+                  ? "No active orders."
+                  : "No completed orders."}
             </div>
           )}
         </div>
@@ -698,15 +561,9 @@ const clearOrderActionError = (orderId: string) => {
         selectedVehicleId={selectedVehicleId}
         isAssigning={isAssigning}
         error={assignError}
-        onVehicleChange={
-          setSelectedVehicleId
-        }
-        onClose={
-          handleCloseAssignVehicle
-        }
-        onAssign={
-          handleAssignVehicle
-        }
+        onVehicleChange={setSelectedVehicleId}
+        onClose={handleCloseAssignVehicle}
+        onAssign={handleAssignVehicle}
       />
     </>
   );

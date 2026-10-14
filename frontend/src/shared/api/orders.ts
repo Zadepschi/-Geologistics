@@ -35,6 +35,7 @@ export interface DeliveryRoute {
   startedAt: string;
   lastProgressAt: string;
   completedAt: string | null;
+   etaMinutes: number;
 }
 
 export async function fetchDeliveryRoutes(): Promise<
@@ -66,15 +67,15 @@ export async function fetchDeliveryRoutes(): Promise<
 // из PostgreSQL и вычисляет новую позицию.
 // ------------------------------------------------------------
 
+
 export interface DeliveryProgressResponse {
-  status:
-    | "in-progress"
-    | "completed";
-
+  status: "in-progress" | "completed";
   completed: boolean;
-
-  route: DeliveryRoute;
+  route: (DeliveryRoute & {
+    etaMinutes: number;
+  }) | null;
 }
+
 
 export async function advanceOrderProgress(
   orderId: string
