@@ -42,3 +42,71 @@
     flex-shrink: 0;
   }
 }
+
+
+@media (max-width: 767px) {
+  .button {
+    width: auto;
+    min-width: 0;
+    height: 34px;
+    min-height: 34px;
+    padding: 0 10px;
+    gap: 6px;
+
+    font-size: 12px;
+    white-space: nowrap;
+    margin-left: 10px;
+  }
+
+  .button svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 380px) {
+  .button {
+    padding: 0 8px;
+    gap: 5px;
+    font-size: 11px;
+  }
+}
+
+
+@media (max-width: 767px) {
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    width: auto;
+    min-width: 0;
+    height: 28px;
+    min-height: 28px;
+    padding: 0 10px;
+
+    border-radius: 5px;
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .button svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 380px) {
+  .button {
+    gap: 4px;
+    padding: 0 7px;
+    font-size: 11px;
+  }
+
+  .button svg {
+    width: 13px;
+    height: 13px;
+  }
+}

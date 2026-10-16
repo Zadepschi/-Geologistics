@@ -67,3 +67,59 @@ box-sizing: border-box;
   color: #fff;
   border-color: #2563eb;
 }
+
+@media (max-width: 1024px) {
+  .panel {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 21;
+
+    width: calc(50% - 20px);
+    padding: 0;
+
+    display: block;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .title {
+    display: none;
+  }
+
+  .group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .action {
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+    padding: 0 4px;
+
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel {
+    right: 8px;
+    width: calc(50% - 20px);
+  }
+
+  .group {
+    gap: 4px;
+  }
+
+  .action {
+    height: 36px;
+    padding: 0 2px;
+    font-size: 9px;
+  }
+}

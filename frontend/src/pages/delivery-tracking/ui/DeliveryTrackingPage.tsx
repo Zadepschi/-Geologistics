@@ -112,25 +112,23 @@ export const DeliveryTrackingPage = () => {
             </div>
 
             {/* Кнопка списка на мобильных и планшетах */}
-            <button
-              type="button"
-              className={styles.vehiclesToggle}
-              aria-expanded={isVehiclesPanelOpen}
-              aria-controls="active-vehicles-panel"
-              onClick={() =>
-                setIsVehiclesPanelOpen((open) => !open)
-              }
-            >
-              <span className={styles.vehiclesToggleIcon} aria-hidden="true">
-                ☷
-              </span>
+           <button
+  type="button"
+  className={styles.vehiclesToggle}
+  aria-expanded={isVehiclesPanelOpen}
+  aria-controls="active-vehicles-panel"
+  onClick={() => setIsVehiclesPanelOpen((open) => !open)}
+>
+  <span className={styles.vehiclesToggleIcon} aria-hidden="true">
+    ☷
+  </span>
 
-              <span>Active vehicles</span>
+  <span>Active vehicles</span>
 
-              <span className={styles.vehiclesToggleCount}>
-                {activeVehiclesCount}
-              </span>
-            </button>
+  <span className={styles.vehiclesToggleCount}>
+    {activeVehiclesCount}
+  </span>
+</button>
 
             {/* Затемнение закрывает панель по нажатию */}
             {isVehiclesPanelOpen && (
@@ -150,17 +148,17 @@ export const DeliveryTrackingPage = () => {
               }`}
             >
               <div className={styles.vehiclesPanelHeader}>
-                <span>Active vehicles</span>
+  <span aria-hidden="true"></span>
 
-                <button
-                  type="button"
-                  className={styles.vehiclesClose}
-                  aria-label="Close active vehicles list"
-                  onClick={() => setIsVehiclesPanelOpen(false)}
-                >
-                  ×
-                </button>
-              </div>
+  <button
+    type="button"
+    className={styles.vehiclesClose}
+    aria-label="Close active vehicles list"
+    onClick={() => setIsVehiclesPanelOpen(false)}
+  >
+    ×
+  </button>
+</div>
 
               <VehiclesPanel
                 onVehicleSelect={() => setIsVehiclesPanelOpen(false)}

@@ -1,5 +1,6 @@
+
 /* =========================================================
-   TOOLBAR — компактная панель управления
+   TOOLBAR — панель управления Live / History
    ========================================================= */
 
 .toolbar {
@@ -7,31 +8,23 @@
   align-items: center;
   justify-content: flex-end;
   flex-shrink: 0;
-
   width: 100%;
   min-width: 0;
   min-height: 34px;
-
   gap: 6px;
   margin: 0;
   padding: 0;
-
   box-sizing: border-box;
 }
-
-
-/* Переключатель Live / History */
 
 .viewSwitcher {
   display: flex;
   align-items: center;
   gap: 2px;
-
+  margin-right: 10px;
   padding: 3px;
-
   border: 1px solid #243247;
   border-radius: 8px;
-
   background: #0b1422;
   box-sizing: border-box;
 }
@@ -40,27 +33,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
   min-width: 68px;
   height: 28px;
-
   padding: 0 12px;
-
   border: 1px solid transparent;
   border-radius: 5px;
-
   background: transparent;
   color: #7f8da3;
-
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   line-height: 1;
-
   white-space: nowrap;
   cursor: pointer;
   touch-action: manipulation;
-
   transition:
     background 0.18s ease,
     border-color 0.18s ease,
@@ -84,36 +70,22 @@
 
   &:hover {
     background: rgba(20, 184, 166, 0.18);
-    color: #ffffff;
-  }
-}
-
-.active {
-  border-color: rgba(20, 184, 166, 0.45);
-  background: rgba(20, 184, 166, 0.12);
-  color: #f4f7fb;
-
-  &:hover {
-    background: rgba(20, 184, 166, 0.18);
-    color: #ffffff;
+    color: #fff;
   }
 }
 
 /* =========================================================
-   PAGE — уменьшенный вертикальный интервал
+   ОСНОВНАЯ СТРАНИЦА И КАРТА
    ========================================================= */
 
 .page {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
-
   width: 100%;
   height: 100%;
-  flex: 1 1 auto;
-
   min-width: 0;
   min-height: 0;
-
   gap: 8px;
   overflow: hidden;
   box-sizing: border-box;
@@ -121,13 +93,10 @@
 
 .mapSection {
   position: relative;
-
   flex: 1 1 0;
   width: 100%;
-
   min-width: 0;
   min-height: 0;
-
   overflow: hidden;
   border-radius: 16px;
 }
@@ -135,7 +104,6 @@
 .map {
   position: absolute;
   inset: 0;
-
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -143,30 +111,23 @@
 }
 
 .vehiclesPanel {
-position: absolute;
-top: 16px;
-left: 16px;
-z-index: 10;
-
-width: 300px;
-height:auto;
-height: min(520px, calc(100% - 32px));
-min-height: 0;
-
-overflow: hidden;
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  width: 300px;
+  height: min(520px, calc(100% - 32px));
+  min-height: 0;
+  overflow: hidden;
 }
 
 .filtersPanel {
   position: absolute;
-
   top: 16px;
   right: 8px;
-
   z-index: 10;
-
   width: 180px;
   max-height: calc(100% - 32px);
-
   overflow-y: auto;
 }
 
@@ -176,96 +137,209 @@ overflow: hidden;
 
 .historySection {
   display: flex;
-  flex-direction: column;
-
   flex: 1 1 0;
-
+  flex-direction: column;
   width: 100%;
   min-width: 0;
   min-height: 0;
-
   gap: 16px;
 }
 
 .historyMapSection {
   position: relative;
-
   flex: 1 1 0;
-
   width: 100%;
   min-width: 0;
   min-height: 0;
-
   overflow: hidden;
-
   border-radius: 16px;
 }
 
-/*
- * HistoryMap занимает всё доступное место
- * внутри historyMapSection.
- */
+/* HistoryMap занимает всё пространство контейнера. */
 .historyMapSection > *:first-child {
   width: 100%;
   height: 100%;
 }
 
-/*
- * History Orders Panel остаётся поверх карты.
- */
+/* Панель заказов истории находится поверх карты. */
 .historyMapSection > :global(.historyOrdersPanel) {
   position: absolute;
 }
 
-/*
- * HistoryOrderDetails находится НЕ на карте,
- * а отдельным блоком строго под ней.
- */
+/* Детали истории находятся под картой. */
 .historySection > :last-child {
   flex-shrink: 0;
   width: 100%;
 }
 
+/* =========================================================
+   КНОПКА ОТКРЫТИЯ СПИСКА МАШИН
+   ========================================================= */
 
+.vehiclesToggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(20, 184, 166, 0.5);
+  border-radius: 10px;
+  background: #0b1422;
+  color: #f4f7fb;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.vehiclesToggleIcon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.vehiclesToggleCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(20, 184, 166, 0.16);
+  color: #35e0c1;
+  font-size: 12px;
+}
+
+.vehiclesPanelHeader {
+  display: none;
+}
+
+.vehiclesClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+  border: 1px solid #243247;
+  border-radius: 6px;
+  background: #111d2d;
+  color: #f4f7fb;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.vehiclesBackdrop {
+  display: none;
+}
+
+
+/* =========================================================
+   ПЛАНШЕТЫ И ТЕЛЕФОНЫ — выдвижная панель машин
+   ========================================================= */
 
 @media (max-width: 1200px) {
+  .mapSection {
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .vehiclesToggle {
+    display: inline-flex;
+  }
+
+  .vehiclesBackdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 29;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: rgba(2, 8, 18, 0.62);
+    cursor: pointer;
+  }
+
   .vehiclesPanel {
-    width: 270px;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    width: min(320px, 88%);
+    height: 100%;
+    max-height: 100%;
+    padding: 12px;
+    overflow: hidden;
+    background: #0b1422;
+    border-right: 1px solid #243247;
+    border-radius: 0 14px 14px 0;
+    box-shadow: 12px 0 35px rgba(0, 0, 0, 0.35);
+    transform: translateX(-105%);
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      transform 0.25s ease,
+      visibility 0.25s ease;
+    box-sizing: border-box;
+  }
+
+  .vehiclesPanelOpen {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .vehiclesPanelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    height: 24px;
+    min-height: 24px;
+    margin: 0 0 4px;
+    padding: 0;
+    font-size: 10px;
+    line-height: 1;
+  }
+
+  .vehiclesPanel > *:last-child {
+    width: 100%;
+    height: calc(100% - 44px);
+    min-height: 0;
+  }
+
+  .vehiclesPanel :global(.panel) {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
   }
 
   .filtersPanel {
-    width: 240px;
-  }
-
-  .toolbar {
-    min-height: 32px;
-  }
-
-  .viewButton {
-    min-width: 64px;
-    height: 27px;
-    padding: 0 10px;
-  }
-
-  .page {
-    gap: 7px;
+    z-index: 10;
   }
 }
 
 /* =========================================================
-   MOBILE
+   МОБИЛЬНЫЕ УСТРОЙСТВА — до 768px
    ========================================================= */
 
 @media (max-width: 768px) {
   .page {
     height: auto;
-    min-height: 100vh;
-
-    gap: 16px;
+    min-height: 0;
+    overflow: visible;
+    gap: 10px;
   }
 
-
-   .toolbar {
+  .toolbar {
     justify-content: space-between;
     gap: 8px;
     min-height: 34px;
@@ -286,48 +360,29 @@ overflow: hidden;
     font-size: 12px;
   }
 
-  .page {
-    height: auto;
-    min-height: 0;
-    gap: 10px;
-    overflow: visible;
-  }
-  
-
-  /* -------------------------
-     Live
-     ------------------------- */
-
   .mapSection {
     display: flex;
+    flex: 0 0 60dvh !important;
     flex-direction: column;
-
-    flex: none;
-
-    height: 450px;
-    min-height: 450px;
-
+    width: 100%;
+    height: 60dvh !important;
+    min-height: 250px !important;
+    max-height: none !important;
     gap: 16px;
-
-    overflow: visible;
+    overflow: hidden;
   }
 
   .map {
     order: 2;
-
     width: 100%;
-    height: 450px;
-    min-height: 450px;
+    height: 100%;
+    min-height: 0;
   }
 
   .vehiclesPanel,
   .filtersPanel {
-    position: static;
-
     width: 100%;
     max-height: none;
-
-    overflow: visible;
   }
 
   .vehiclesPanel {
@@ -335,29 +390,23 @@ overflow: hidden;
   }
 
   .filtersPanel {
+    position: static;
     order: 3;
+    overflow: visible;
   }
-
-  /* -------------------------
-     History
-     ------------------------- */
 
   .historySection {
     flex: none;
-
     height: auto;
     min-height: 0;
-
     gap: 16px;
   }
 
   .historyMapSection {
     flex: none;
-
     width: 100%;
     height: 450px;
     min-height: 450px;
-
     overflow: visible;
   }
 
@@ -371,6 +420,9 @@ overflow: hidden;
   }
 }
 
+/* =========================================================
+   НЕБОЛЬШИЕ ТЕЛЕФОНЫ — до 480px
+   ========================================================= */
 
 @media (max-width: 480px) {
   .toolbar {
@@ -388,10 +440,29 @@ overflow: hidden;
     padding: 0 8px;
     font-size: 11px;
   }
+
+  .mapSection {
+    flex-basis: 50dvh !important;
+    height: 50dvh !important;
+    min-height: 230px !important;
+  }
+
+  .vehiclesPanel {
+    width: min(300px, 90%);
+    padding: 10px;
+  }
+
+  .vehiclesToggle {
+    top: 6px;
+    left: 10px;
+    min-height: 40px;
+    padding: 0 11px;
+    font-size: 12px;
+  }
 }
 
 /* =========================================================
-   VERY SMALL MOBILE
+   ОЧЕНЬ УЗКИЕ ЭКРАНЫ — до 360px
    ========================================================= */
 
 @media (max-width: 360px) {
@@ -404,192 +475,5 @@ overflow: hidden;
     height: 26px;
     padding: 0 6px;
     font-size: 11px;
-  }
-}
-
-
-/* Кнопка открытия списка — только на мобильных и планшетах */
-.vehiclesToggle {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 20;
-
-  min-height: 42px;
-  padding: 0 14px;
-
-  border: 1px solid rgba(20, 184, 166, 0.5);
-  border-radius: 10px;
-
-  background: #0b1422;
-  color: #f4f7fb;
-
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-.vehiclesToggleIcon {
-  font-size: 20px;
-  line-height: 1;
-}
-
-.vehiclesToggleCount {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  min-width: 24px;
-  height: 24px;
-  padding: 0 6px;
-
-  border-radius: 999px;
-  background: rgba(20, 184, 166, 0.16);
-  color: #35e0c1;
-
-  font-size: 12px;
-}
-
-.vehiclesPanelHeader {
-  display: none;
-}
-
-.vehiclesClose {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 32px;
-  height: 32px;
-
-  border: 1px solid #243247;
-  border-radius: 8px;
-
-  background: #111d2d;
-  color: #f4f7fb;
-
-  font-size: 24px;
-  line-height: 1;
-
-  cursor: pointer;
-}
-
-.vehiclesBackdrop {
-  display: none;
-}
-
-/* Планшеты и телефоны */
-@media (max-width: 1024px) {
-  .mapSection {
-    overflow: hidden;
-    isolation: isolate;
-  }
-
-  .vehiclesToggle {
-    display: inline-flex;
-  }
-
-  .vehiclesBackdrop {
-    display: block;
-
-    position: absolute;
-    inset: 0;
-    z-index: 29;
-
-    width: 100%;
-    height: 100%;
-
-    border: 0;
-    background: rgba(2, 8, 18, 0.62);
-    cursor: pointer;
-  }
-
-  .vehiclesPanel {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 30;
-
-    width: min(320px, 88%);
-    height: 100%;
-    max-height: 100%;
-    padding: 12px;
-
-    overflow: hidden;
-
-    background: #0b1422;
-    border-right: 1px solid #243247;
-    border-radius: 0 14px 14px 0;
-    box-shadow: 12px 0 35px rgba(0, 0, 0, 0.35);
-
-    transform: translateX(-105%);
-    visibility: hidden;
-    pointer-events: none;
-
-    transition:
-      transform 0.25s ease,
-      visibility 0.25s ease;
-
-    box-sizing: border-box;
-  }
-
-  .vehiclesPanelOpen {
-    transform: translateX(0);
-    visibility: visible;
-    pointer-events: auto;
-  }
-
-  .vehiclesPanelHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-
-    margin-bottom: 10px;
-
-    color: #f4f7fb;
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .vehiclesPanel > *:last-child {
-    width: 100%;
-    height: calc(100% - 44px);
-    min-height: 0;
-  }
-
-  .vehiclesPanel :global(.panel) {
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-  }
-
-  .filtersPanel {
-    z-index: 10;
-  }
-}
-
-/* Уменьшаем ширину панели на очень узких экранах */
-@media (max-width: 480px) {
-  .vehiclesPanel {
-    width: min(300px, 90%);
-    padding: 10px;
-  }
-
-  .vehiclesToggle {
-    top: 10px;
-    left: 10px;
-    min-height: 40px;
-    padding: 0 11px;
-    font-size: 12px;
   }
 }
