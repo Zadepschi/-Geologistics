@@ -107,11 +107,7 @@ export async function advanceOrderProgress(
 req: Request,
 res: Response,
 ) {
-console.log("[PROGRESS REQUEST]", {
-method: req.method,
-url: req.originalUrl,
-orderId: req.params.id,
-});
+
 
 try {
 const result = await advanceOrderProgressService(

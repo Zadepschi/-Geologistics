@@ -1007,15 +1007,6 @@ export async function advanceOrderProgress(
       nextPathIndex + 1,
     );
 
-    console.log("[DELIVERY PROGRESS]", {
-      orderId: order.id,
-      previousPathIndex: currentPathIndex,
-      nextPathIndex,
-      pathLength: path.length,
-      elapsedMs,
-      consumedMs,
-      isCompleted,
-    });
 
     if (isCompleted) {
       await completeDeliveryRoute(

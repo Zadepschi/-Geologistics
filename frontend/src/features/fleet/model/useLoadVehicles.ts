@@ -100,8 +100,6 @@ export const useLoadVehicles = () => {
 
           const deliveryCompleted = Boolean(deliveryRoute.completedAt);
 
-console.log("Restored delivery route:", deliveryRoute);
-console.log("Restored ETA:", deliveryRoute.etaMinutes);
 
 const etaMinutes = deliveryCompleted
   ? 0

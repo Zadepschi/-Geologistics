@@ -1089,19 +1089,18 @@ if (clustersModeChanged) {
     };
 
    
- const waitForMapIdle = () => {
-      if (cancelled || mapRef.current !== map) {
-        return;
-      }
 
-      if (map.isStyleLoaded()) {
-        console.log("[ROUTE] Map ready; drawing completed path");
-        drawCompletedRoute();
-      } else {
-        console.log("[ROUTE] Map not ready yet; waiting for idle");
-        map.once("idle", waitForMapIdle);
-      }
-    };
+const waitForMapIdle = () => {
+  if (cancelled || mapRef.current !== map) {
+    return;
+  }
+
+  if (map.isStyleLoaded()) {
+    drawCompletedRoute();
+  } else {
+    map.once("idle", waitForMapIdle);
+  }
+};
 
     const onStyleLoad = () => {
       waitForMapIdle();

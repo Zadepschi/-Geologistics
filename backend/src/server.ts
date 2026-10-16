@@ -74,9 +74,6 @@ async function completeOverdueOrders(): Promise<void> {
       return;
     }
 
-    console.log(
-      `[Auto-completion] Found ${result.rows.length} overdue order(s).`
-    );
 
     for (const row of result.rows) {
       try {
@@ -84,9 +81,6 @@ async function completeOverdueOrders(): Promise<void> {
           status: "completed",
         });
 
-        console.log(
-          `[Auto-completion] Order ${row.id} completed successfully.`
-        );
       } catch (error) {
         console.error(
           `[Auto-completion] Failed to complete order ${row.id}:`,
