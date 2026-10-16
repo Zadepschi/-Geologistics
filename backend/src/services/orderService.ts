@@ -823,6 +823,7 @@ export async function updateOrderStatus(
 // DELIVERY PROGRESS
 // -----------------------------------------------------------------------------
 
+
 export async function advanceOrderProgress(
   orderId: string,
 ) {
@@ -863,26 +864,27 @@ export async function advanceOrderProgress(
     }
 
     const path = route.path as Coordinate[];
+
     const currentPathIndex = Math.max(
       0,
       Number(route.currentPathIndex) || 0,
     );
 
-    const createProgressRoute = () => {
-      const completed =
-        Boolean(route.completedAt) ||
-        order.status === "completed";
-
+    const createProgressRoute = (
+      pathIndex = currentPathIndex,
+      completed = Boolean(route.completedAt) ||
+        order.status === "completed",
+    ) => {
       const remainingMs = completed
         ? 0
-        : remainingTravelMs(path, currentPathIndex);
+        : remainingTravelMs(path, pathIndex);
 
       return {
         id: route.id,
         orderId: route.orderId,
         vehicleId: route.vehicleId,
         driverId: route.driverId,
-        currentPathIndex,
+        currentPathIndex: pathIndex,
         startedAt: route.startedAt,
         lastProgressAt: route.lastProgressAt,
         completedAt: route.completedAt,
@@ -927,21 +929,20 @@ export async function advanceOrderProgress(
       );
     }
 
-    if (currentPathIndex >= path.length - 1) {
-      console.warn("[DELIVERY DEBUG] Index already at route end", {
-        orderId: order.id,
-        currentPathIndex,
-        pathLength: path.length,
-      });
-
+    if (
+      currentPathIndex >= path.length ||
+      currentPathIndex >= path.length - 1
+    ) {
       throw new OrderServiceError(
         "Route index is already at the final point but route is not completed",
         409,
       );
     }
 
-    const STEP_INTERVAL_MS = 700;
-    const lastProgressAt = new Date(route.lastProgressAt).getTime();
+    const lastProgressAt = new Date(
+      route.lastProgressAt,
+    ).getTime();
+
     const now = Date.now();
 
     if (!Number.isFinite(lastProgressAt)) {
@@ -951,9 +952,36 @@ export async function advanceOrderProgress(
       );
     }
 
-    const elapsedMs = Math.max(0, now - lastProgressAt);
+    // Сколько времени прошло с последнего сохранённого прогресса.
+    const elapsedMs = Math.max(
+      0,
+      now - lastProgressAt,
+    );
 
-    if (elapsedMs < STEP_INTERVAL_MS) {
+    // Считаем, сколько сегментов маршрут мог пройти
+    // за прошедшее время.
+    let nextPathIndex = currentPathIndex;
+    let consumedMs = 0;
+
+    while (nextPathIndex < path.length - 1) {
+      const segmentMs = Math.max(
+        1,
+        segmentTravelMs(
+          path[nextPathIndex],
+          path[nextPathIndex + 1],
+        ),
+      );
+
+      if (consumedMs + segmentMs > elapsedMs) {
+        break;
+      }
+
+      consumedMs += segmentMs;
+      nextPathIndex += 1;
+    }
+
+    // Времени пока не хватило даже на следующий сегмент.
+    if (nextPathIndex === currentPathIndex) {
       await client.query("COMMIT");
 
       return {
@@ -963,21 +991,30 @@ export async function advanceOrderProgress(
       };
     }
 
-    // За один вызов продвигаемся только на одну точку.
-    const nextPathIndex = currentPathIndex + 1;
     const nextPoint = path[nextPathIndex];
-    const isCompleted = nextPathIndex === path.length - 1;
 
-    const nextProgressAt = new Date(now);
-    const completedPath = path.slice(0, nextPathIndex + 1);
+    const isCompleted =
+      nextPathIndex === path.length - 1;
 
-    console.log("[DELIVERY DEBUG]", {
+    // Не теряем остаток времени: сохраняем время последнего
+    // полностью пройденного сегмента.
+    const nextProgressAt = new Date(
+      lastProgressAt + consumedMs,
+    );
+
+    const completedPath = path.slice(
+      0,
+      nextPathIndex + 1,
+    );
+
+    console.log("[DELIVERY PROGRESS]", {
       orderId: order.id,
-      currentPathIndex,
+      previousPathIndex: currentPathIndex,
       nextPathIndex,
       pathLength: path.length,
-      isCompleted,
       elapsedMs,
+      consumedMs,
+      isCompleted,
     });
 
     if (isCompleted) {
@@ -1056,7 +1093,9 @@ export async function advanceOrderProgress(
     await client.query("COMMIT");
 
     return {
-      status: isCompleted ? "completed" : "in-progress",
+      status: isCompleted
+        ? "completed"
+        : "in-progress",
       completed: isCompleted,
       route: {
         ...updatedRoute,
@@ -1076,14 +1115,36 @@ export async function advanceOrderProgress(
   }
 }
 
+
 // -----------------------------------------------------------------------------
 // GET DELIVERY ROUTES
 // -----------------------------------------------------------------------------
 
 export async function listDeliveryRoutes() {
-  return findDeliveryRoutes(
+  const routes = await findDeliveryRoutes(
     pool as unknown as PoolClient,
   );
+
+  return routes.map((route: any) => {
+    const path = route.path as Coordinate[];
+    const currentPathIndex =
+      Math.max(0, Number(route.currentPathIndex) || 0);
+
+    const completed = Boolean(route.completedAt);
+
+    const etaMinutes = completed
+      ? 0
+      : Array.isArray(path) && path.length >= 2
+        ? Math.ceil(
+            remainingTravelMs(path, currentPathIndex) / 60_000,
+          )
+        : null;
+
+    return {
+      ...route,
+      etaMinutes,
+    };
+  });
 }
 
 

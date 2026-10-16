@@ -54,6 +54,28 @@ const normalizeSearchValue = (value: unknown): string => {
   return String(value).toLowerCase();
 };
 
+
+const formatRemainingTime = (minutes: number | undefined): string => {
+  if (minutes == null || !Number.isFinite(minutes)) {
+    return "—";
+  }
+
+  const remaining = Math.max(0, Math.ceil(minutes));
+  const hours = Math.floor(remaining / 60);
+  const mins = remaining % 60;
+
+  if (hours === 0) {
+    return `${mins} min`;
+  }
+
+  if (mins === 0) {
+    return `${hours} h`;
+  }
+
+  return `${hours} h ${mins} min`;
+};
+
+
 export const DispatchOrders = ({ onEditOrder }: DispatchOrdersProps) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -113,8 +135,9 @@ export const DispatchOrders = ({ onEditOrder }: DispatchOrdersProps) => {
     (order) => order.status === "completed"
   );
 
-  const visibleOrders =
-    orderView === "active" ? activeOrders : completedOrders;
+  const visibleOrders = (
+  orderView === "active" ? activeOrders : completedOrders
+).slice().reverse();
 
   const query = normalizeSearchValue(search).trim();
 
@@ -470,14 +493,18 @@ export const DispatchOrders = ({ onEditOrder }: DispatchOrdersProps) => {
                     <strong>{order.address}</strong>
                   </div>
 
-                  <div>
-                    <span>ETA</span>
-                    <strong>
-                      {typeof order.eta === "string"
-                        ? order.eta.slice(0, 5)
-                        : "—"}
-                    </strong>
-                  </div>
+                
+<div>
+  <span>ETA</span>
+  
+ <strong>
+  {order.status === "in-progress" ||
+  order.status === "delayed"
+    ? formatRemainingTime(assignedVehicle?.route?.etaMinutes)
+    : "—"}
+</strong>
+</div>
+
 
                   <div>
                     <span>Vehicle</span>

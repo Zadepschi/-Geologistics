@@ -1,6 +1,13 @@
 .card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
   padding: 22px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
+
 
 .header {
   display: flex;
@@ -94,7 +101,35 @@
 
 .list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
   gap: 14px;
+
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 6px 4px 0;
+
+  scrollbar-width: thin;
+  scrollbar-color: #29384c transparent;
+}
+
+.list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #29384c;
+}
+
+.list::-webkit-scrollbar-thumb:hover {
+  background: #3a4b61;
 }
 
 .orderCard {
@@ -234,9 +269,7 @@
 }
 
 .stickyHeader {
-  position: sticky;
-  top: 0;
-  z-index: 20;
+  flex-shrink: 0;
   padding-top: 8px;
   background: #0b1625;
 }

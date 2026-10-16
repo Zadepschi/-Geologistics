@@ -1,39 +1,84 @@
+
 .header {
-  height: 70px;
-  padding: 0 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(6, 11, 22, 0.9);
+  gap: 12px;
+
+  width: 100%;
+  height: 54px;
+  min-height: 54px;
+  box-sizing: border-box;
+  padding: 0 16px;
+
+  background: rgba(6, 11, 22, 0.96);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
 }
 
 .title {
-  font-size: 18px;
+  min-width: 0;
+  overflow: hidden;
+
+  color: #f8fafc;
+  font-size: 16px;
   font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-shrink: 0;
+  gap: 8px;
+  min-width: 0;
+}
+
+.user {
+  min-width: 0;
+  max-width: 140px;
+  overflow: hidden;
+
+  color: var(--text);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .notifications {
   position: relative;
+  flex-shrink: 0;
 }
 
 .icon {
-  width: 40px;
-  height: 40px;
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  width: 34px;
+  height: 34px;
+  box-sizing: border-box;
+
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 9px;
+
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
+
   cursor: pointer;
-  position: relative;
+  transition: background 0.18s ease, border-color 0.18s ease;
 
   &:hover {
     background: rgba(255, 255, 255, 0.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #10b981;
+    outline-offset: 2px;
   }
 }
 
@@ -41,50 +86,64 @@
   position: absolute;
   top: -4px;
   right: -4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  min-width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  padding: 0 5px;
+
+  border: 2px solid #080f1d;
   border-radius: 999px;
+
   background: #ef4444;
   color: #fff;
-  border: 2px solid #080f1d;
+
   font-size: 10px;
   font-weight: 700;
 }
 
 .notificationsDropdown {
   position: absolute;
-  top: calc(100% + 12px);
+  top: calc(100% + 8px);
   right: 0;
+  z-index: 1000;
+
   width: 360px;
   max-width: calc(100vw - 24px);
+  box-sizing: border-box;
+
   overflow: hidden;
+
   border: 1px solid #34445d;
   border-radius: 16px;
+
   background: #101b2d;
   box-shadow:
     0 24px 60px rgba(0, 0, 0, 0.65),
     0 0 0 1px rgba(255, 255, 255, 0.035);
-  z-index: 1000;
 }
 
 .notificationsHeader {
-  padding: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: #162338;
+
+  padding: 14px 16px;
+
   border-bottom: 1px solid #34445d;
+  background: #162338;
 }
 
 .headerTitle {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 
   strong {
     color: #f1f5f9;
@@ -100,12 +159,15 @@
 .unreadCount {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   flex-shrink: 0;
+  gap: 6px;
+
   padding: 6px 9px;
+
   border-radius: 999px;
   background: rgba(16, 185, 129, 0.12);
   color: #6ee7b7;
+
   font-size: 11px;
   font-weight: 700;
 }
@@ -113,6 +175,8 @@
 .countDot {
   width: 7px;
   height: 7px;
+  flex-shrink: 0;
+
   border-radius: 50%;
   background: #10b981;
 }
@@ -127,35 +191,34 @@
 }
 
 .notificationsList {
-  max-height: min(440px, calc(100vh - 130px));
+  max-height: min(440px, calc(100dvh - 110px));
   overflow-y: auto;
   overflow-x: hidden;
+
   background: #101b2d;
 
-  // Firefox
   scrollbar-width: thin;
   scrollbar-color: #526780 #101b2d;
 
-  // Chrome, Edge, Safari
   &::-webkit-scrollbar {
     width: 8px;
   }
 
   &::-webkit-scrollbar-track {
-    background: #0b1423;
     border-left: 1px solid rgba(148, 163, 184, 0.08);
     border-radius: 0 0 12px 0;
+    background: #0b1423;
   }
 
   &::-webkit-scrollbar-thumb {
+    min-height: 36px;
+    border: 2px solid #0b1423;
+    border-radius: 999px;
     background: linear-gradient(
       180deg,
       #647b96 0%,
       #3d526d 100%
     );
-    border: 2px solid #0b1423;
-    border-radius: 999px;
-    min-height: 36px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
@@ -178,8 +241,11 @@
 .notification {
   display: flex;
   gap: 11px;
-  padding: 14px 16px;
+
+  padding: 12px 16px;
+
   border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+
   transition:
     background 0.18s ease,
     opacity 0.18s ease;
@@ -247,9 +313,9 @@
 }
 
 .notificationText {
+  overflow-wrap: anywhere;
   font-size: 12px;
   line-height: 1.5;
-  overflow-wrap: anywhere;
 }
 
 .notificationFooter {
@@ -287,20 +353,26 @@
 }
 
 .loadMore {
-  width: 100%;
-  min-height: 54px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 16px;
+
+  width: 100%;
+  min-height: 46px;
+  box-sizing: border-box;
+  padding: 10px 16px;
+
   border: none;
   border-top: 1px solid #34445d;
+
   background: #162338;
   color: #6ee7b7;
+
   font: inherit;
   font-size: 12px;
   font-weight: 700;
+
   cursor: pointer;
 
   span {
@@ -324,10 +396,12 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 32px 20px;
-  text-align: center;
+
+  padding: 28px 20px;
+
   color: #94a3b8;
   font-size: 12px;
+  text-align: center;
 
   strong {
     color: #f1f5f9;
@@ -336,22 +410,127 @@
 }
 
 .emptyIcon {
-  width: 36px;
-  height: 36px;
   display: grid;
   place-items: center;
+
+  width: 36px;
+  height: 36px;
   margin-bottom: 4px;
+
   border-radius: 50%;
   background: rgba(16, 185, 129, 0.14);
   color: #6ee7b7;
+
   font-size: 18px;
 }
 
+/* Планшеты */
+@media (max-width: 768px) {
+  .header {
+    gap: 10px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .title {
+    font-size: 15px;
+  }
+
+  .user {
+    max-width: 110px;
+  }
+
+  .actions {
+    gap: 7px;
+  }
+}
+
+/* Мобильные устройства */
 @media (max-width: 480px) {
+  .header {
+    height: 48px;
+    min-height: 48px;
+    gap: 6px;
+
+    /* Место слева для кнопки меню */
+    padding-right: 8px;
+    padding-left: 58px;
+  }
+
+  .title {
+    flex: 1;
+    font-size: 14px;
+  }
+
+  .actions {
+    gap: 6px;
+  }
+
+  .user {
+    max-width: 76px;
+    font-size: 11px;
+  }
+
+  .icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
   .notificationsDropdown {
     position: fixed;
-    top: 76px;
-    right: 12px;
-    width: calc(100vw - 24px);
+    top: 54px;
+    right: 8px;
+    left: 8px;
+
+    width: auto;
+    max-width: none;
+  }
+
+  .notificationsHeader {
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .notification {
+    gap: 9px;
+    padding: 11px 12px;
+  }
+
+  .notificationsList {
+    max-height: calc(100dvh - 80px);
+  }
+}
+
+/* Очень узкие телефоны */
+@media (max-width: 360px) {
+  .header {
+    gap: 5px;
+    padding-right: 6px;
+    padding-left: 54px;
+  }
+
+  .title {
+    font-size: 13px;
+  }
+
+  .actions {
+    gap: 5px;
+  }
+
+  .user {
+    max-width: 62px;
+    font-size: 10px;
+  }
+
+  .icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .unreadCount {
+    gap: 5px;
+    padding: 5px 7px;
+    font-size: 10px;
   }
 }

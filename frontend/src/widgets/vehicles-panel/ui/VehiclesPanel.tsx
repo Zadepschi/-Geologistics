@@ -4,7 +4,13 @@ import { useFleetStore } from "@/shared/store/fleet";
 
 import styles from "./VehiclesPanel.module.scss";
 
-export const VehiclesPanel = () => {
+interface VehiclesPanelProps {
+  onVehicleSelect?: () => void;
+}
+
+export const VehiclesPanel = ({
+  onVehicleSelect,
+}: VehiclesPanelProps) => {
   const vehicles = useFleetStore(
     (state) => state.vehicles
   );
@@ -17,16 +23,6 @@ export const VehiclesPanel = () => {
     (state) => state.setSelectedVehicleId
   );
 
-  /*
-   * Заказы здесь больше не загружаем.
-   *
-   * useLoadVehicles() уже получает orders из backend
-   * и восстанавливает route непосредственно в Zustand.
-   *
-   * Поэтому VehiclesPanel использует только состояние
-   * vehicles из store.
-   */
-
   const activeVehicles = vehicles.filter(
     (vehicle) =>
       !vehicle.isArchived &&
@@ -37,6 +33,11 @@ export const VehiclesPanel = () => {
       Boolean(vehicle.route) &&
       !vehicle.route?.deliveryCompleted
   );
+
+  const handleVehicleSelect = (vehicleId: string) => {
+    setSelectedVehicleId(vehicleId);
+    onVehicleSelect?.();
+  };
 
   return (
     <Card className={styles.panel}>
@@ -59,10 +60,16 @@ export const VehiclesPanel = () => {
               vehicle.id === selectedVehicleId
             }
             onClick={() =>
-              setSelectedVehicleId(vehicle.id)
+              handleVehicleSelect(vehicle.id)
             }
           />
         ))}
+
+        {activeVehicles.length === 0 && (
+          <div className={styles.empty}>
+            No active vehicles
+          </div>
+        )}
       </div>
     </Card>
   );

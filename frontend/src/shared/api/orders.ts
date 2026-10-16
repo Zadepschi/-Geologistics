@@ -59,9 +59,10 @@ export interface DeliveryProgressResponse {
 export async function advanceOrderProgress(
   orderId: string,
 ): Promise<DeliveryProgressResponse> {
-  const res = await apiFetch(`/api/orders/${orderId}/progress`, {
-    method: "PATCH",
-  });
+  const res = await apiFetch(
+    `/api/orders/${encodeURIComponent(orderId)}/progress`,
+    { method: "PATCH" },
+  );
 
   if (!res.ok) {
     const data = await res.json().catch(() => null);

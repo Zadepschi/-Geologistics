@@ -1,15 +1,22 @@
 import { Sidebar } from "@/widgets/sidebar";
 import { Header } from "@/widgets/header";
+import { Footer } from "@/widgets/footer";
 import { Outlet } from "react-router-dom";
+import styles from "./AppLayout.module.scss";
 
 export const AppLayout = () => {
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
+    <div className={styles.layout}>
       <Sidebar />
 
-      <div style={{ flex: 1 }}>
+      <div className={styles.main}>
         <Header />
-        <Outlet /> 
+
+        <main className={styles.content}>
+          <Outlet />
+        </main>
+
+        <Footer />
       </div>
     </div>
   );

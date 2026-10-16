@@ -98,18 +98,14 @@ export const useLoadVehicles = () => {
                   currentPathIndex + 1
                 );
 
-          const deliveryCompleted =
-            Boolean(
-              deliveryRoute.completedAt
-            );
+          const deliveryCompleted = Boolean(deliveryRoute.completedAt);
 
-          /*
-           * Пока ETA не вычисляем локально.
-           */
-          const etaMinutes =
-            deliveryCompleted
-              ? 0
-              : 0;
+console.log("Restored delivery route:", deliveryRoute);
+console.log("Restored ETA:", deliveryRoute.etaMinutes);
+
+const etaMinutes = deliveryCompleted
+  ? 0
+  : Math.max(0, deliveryRoute.etaMinutes);
 
           setVehicleRouteState(
             deliveryRoute.vehicleId,

@@ -11,6 +11,30 @@ import { useFleetStore } from "@/shared/store/fleet";
 
 import styles from "./VehicleDetails.module.scss";
 
+
+const formatRemainingTime = (
+  minutes: number | undefined
+): string => {
+  if (minutes == null || !Number.isFinite(minutes)) {
+    return "—";
+  }
+
+  const remaining = Math.max(0, Math.ceil(minutes));
+  const hours = Math.floor(remaining / 60);
+  const mins = remaining % 60;
+
+  if (hours === 0) {
+    return `${mins} min`;
+  }
+
+  if (mins === 0) {
+    return `${hours} h`;
+  }
+
+  return `${hours} h ${mins} min`;
+};
+
+
 export const VehicleDetails = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -187,14 +211,17 @@ export const VehicleDetails = () => {
           </div>
 
           <div>
-            <span>ETA</span>
-            <strong>
-              {selectedVehicle.route
-                ?.etaMinutes
-                ? `${selectedVehicle.route.etaMinutes} min`
-                : selectedOrder?.eta ?? "—"}
-            </strong>
-          </div>
+  <span>ETA</span>
+  <strong>
+    {selectedVehicle.route?.deliveryCompleted
+      ? "Delivered"
+      : selectedVehicle.route
+        ? formatRemainingTime(
+            selectedVehicle.route.etaMinutes
+          )
+        : "—"}
+  </strong>
+</div>
 
           <div>
             <span>Delivery</span>

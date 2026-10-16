@@ -49,6 +49,7 @@ CREATE TABLE delivery_addresses (
 );
 
 
+
 CREATE TABLE orders (
   id VARCHAR(50) PRIMARY KEY,
 
@@ -65,8 +66,13 @@ CREATE TABLE orders (
     REFERENCES vehicles(id),
 
   status VARCHAR(30) NOT NULL,
-  eta TIME
+  eta TIME,
+
+  delivery_started_at TIMESTAMPTZ,
+  estimated_arrival_at TIMESTAMPTZ,
+  delivery_completed_at TIMESTAMPTZ
 );
+
 
 
 CREATE TABLE delivery_routes (
@@ -161,7 +167,4 @@ CREATE INDEX IF NOT EXISTS idx_activity_events_created_at
 
 
   
-ALTER TABLE orders
-  ADD COLUMN IF NOT EXISTS delivery_started_at TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS estimated_arrival_at TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS delivery_completed_at TIMESTAMPTZ;
+

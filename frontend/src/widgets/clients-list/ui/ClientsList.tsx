@@ -14,7 +14,7 @@ interface ClientsListProps {
   onEdit: (client: Client) => void;
 }
 
-type ClientView = "active" | "archived";
+type ClientView = "completed" | "in-progress" |  "archived" ;
 
 export const ClientsList = ({
   onEdit,
@@ -28,8 +28,8 @@ export const ClientsList = ({
   const [search, setSearch] =
     useState("");
 
-  const [view, setView] =
-    useState<ClientView>("active");
+ const [view, setView] =
+  useState<ClientView>("in-progress");
 
   const [clientToArchive, setClientToArchive] =
     useState<Client | null>(null);
@@ -87,48 +87,90 @@ export const ClientsList = ({
     };
   }, []);
 
-  const normalizedSearch =
-    search.trim().toLowerCase();
 
-  const filteredClients =
-    clients.filter((client) => {
-      if (
-        view === "active" &&
-        client.isArchived
-      ) {
-        return false;
-      }
+const normalizedSearch = search.trim().toLowerCase();
 
-      if (
-        view === "archived" &&
-        !client.isArchived
-      ) {
-        return false;
-      }
+const activeStatuses = [
+  "assigned",
+  "in-progress",
+  "delayed",
+];
 
-      if (!normalizedSearch) {
-        return true;
-      }
+const filteredClients = clients.filter((client) => {
+  if (view === "archived") {
+    if (!client.isArchived) return false;
+  } else {
+    if (client.isArchived) return false;
 
-      return [
-        client.name,
-        client.email,
-        client.phone,
-        client.address,
-      ].some((value) =>
-        value
-          .toLowerCase()
-          .includes(normalizedSearch)
-      );
-    });
+    const clientOrders = orders.filter(
+      (order) => order.clientId === client.id
+    );
 
-  const activeCount = clients.filter(
-    (client) => !client.isArchived
-  ).length;
+    if (clientOrders.length === 0) return false;
 
-  const archivedCount = clients.filter(
-    (client) => client.isArchived
-  ).length;
+    const hasActiveOrder = clientOrders.some((order) =>
+      activeStatuses.includes(order.status)
+    );
+
+    const allOrdersCompleted = clientOrders.every(
+      (order) => order.status === "completed"
+    );
+
+    if (view === "in-progress" && !hasActiveOrder) {
+      return false;
+    }
+
+    if (view === "completed" && !allOrdersCompleted) {
+      return false;
+    }
+  }
+
+  if (!normalizedSearch) return true;
+
+  return [
+    client.name,
+    client.email,
+    client.phone,
+    client.address,
+  ].some((value) =>
+    (value ?? "").toLowerCase().includes(normalizedSearch)
+  );
+});
+
+
+
+
+const archivedCount = clients.filter(
+  (client) => client.isArchived
+).length;
+
+const inProgressCount = clients.filter((client) => {
+  if (client.isArchived) return false;
+
+  return orders.some(
+    (order) =>
+      order.clientId === client.id &&
+      activeStatuses.includes(order.status)
+  );
+}).length;
+
+const completedCount = clients.filter((client) => {
+  if (client.isArchived) return false;
+
+  const clientOrders = orders.filter(
+    (order) => order.clientId === client.id
+  );
+
+  return (
+    clientOrders.length > 0 &&
+    clientOrders.every(
+      (order) => order.status === "completed"
+    )
+  );
+}).length;
+
+
+
 
   const handleArchive = async () => {
     if (!clientToArchive) {
@@ -177,43 +219,59 @@ export const ClientsList = ({
     setClientToArchive(client);
   };
 
+  
+
   return (
     <>
       <Card className={styles.card}>
         <div className={styles.header}>
           <h2>Clients</h2>
 
-          <div className={styles.tabs}>
-            <button
-              type="button"
-              onClick={() =>
-                setView("active")
-              }
-              className={
-                view === "active"
-                  ? styles.tabActive
-                  : styles.tab
-              }
-            >
-              Active
-              <span>{activeCount}</span>
-            </button>
+          
+<div className={styles.tabs}>
+ 
 
-            <button
-              type="button"
-              onClick={() =>
-                setView("archived")
-              }
-              className={
-                view === "archived"
-                  ? styles.tabActive
-                  : styles.tab
-              }
-            >
-              Archived
-              <span>{archivedCount}</span>
-            </button>
-          </div>
+  <button
+    type="button"
+    onClick={() => setView("in-progress")}
+    className={
+      view === "in-progress"
+        ? styles.tabActive
+        : styles.tab
+    }
+  >
+    In Progress
+    <span>{inProgressCount}</span>
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setView("completed")}
+    className={
+      view === "completed"
+        ? styles.tabActive
+        : styles.tab
+    }
+  >
+    Completed
+    <span>{completedCount}</span>
+  </button>
+
+
+   <button
+    type="button"
+    onClick={() => setView("archived")}
+    className={
+      view === "archived"
+        ? styles.tabActive
+        : styles.tab
+    }
+  >
+    Archived
+    <span>{archivedCount}</span>
+  </button>
+</div>
+
         </div>
 
         <div className={styles.search}>
@@ -230,15 +288,22 @@ export const ClientsList = ({
 
         <div className={styles.list}>
           {filteredClients.map((client) => {
-            const clientOrders =
-              orders.filter(
-                (order) =>
-                  order.clientId ===
-                  client.id
-              );
+           
+const clientOrders = orders.filter(
+  (order) => order.clientId === client.id
+);
 
-            const lastOrder =
-              clientOrders.at(-1);
+const activeClientOrders = clientOrders.filter(
+  (order) =>
+    order.status === "assigned" ||
+    order.status === "in-progress" ||
+    order.status === "delayed"
+);
+
+const lastOrder =
+  activeClientOrders.at(-1) ??
+  clientOrders.at(-1);
+
 
             return (
               <div
@@ -252,14 +317,11 @@ export const ClientsList = ({
                     <p>{client.email}</p>
                   </div>
 
-                  <span
-                    className={
-                      styles.ordersCount
-                    }
-                  >
-                    {clientOrders.length}{" "}
-                    orders
-                  </span>
+                <span className={styles.ordersCount}>
+  {clientOrders.length} orders
+  {activeClientOrders.length > 0 &&
+    ` · ${activeClientOrders.length} active`}
+</span>
                 </div>
 
                 <div className={styles.info}>
@@ -300,7 +362,7 @@ export const ClientsList = ({
                 <div
                   className={styles.actions}
                 >
-                  {view === "active" && (
+                  {view !== "archived" && (
                     <button
                       type="button"
                       className={
@@ -339,14 +401,14 @@ export const ClientsList = ({
           })}
 
           {filteredClients.length === 0 && (
-            <div className={styles.empty}>
-              {view === "archived"
-                ? "No archived clients."
-                : normalizedSearch
-                  ? "No clients found."
-                  : "No active clients available."}
-            </div>
-          )}
+  <div className={styles.empty}>
+    {view === "archived"
+      ? "No archived clients."
+      : normalizedSearch
+        ? "No clients found."
+        : "No active clients available."}
+  </div>
+)}
         </div>
       </Card>
 

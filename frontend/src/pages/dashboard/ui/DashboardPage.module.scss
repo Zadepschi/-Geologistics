@@ -3,31 +3,28 @@
   flex-direction: column;
 
   width: 100%;
-  height: calc(100vh - var(--header-h));
-
+  height: 100%;
   min-height: 0;
+  min-width: 0;
 
   box-sizing: border-box;
-
-  gap: 24px;
+  gap: 20px;
 
   overflow: hidden;
 }
 
 .grid {
   display: grid;
-
   grid-template-columns:
     minmax(0, 3fr)
-    minmax(360px, 2fr);
+    minmax(0, 2fr);
 
   flex: 1;
   min-height: 0;
+  min-width: 0;
 
-  gap: 24px;
-
+  gap: 20px;
   align-items: stretch;
-
   width: 100%;
 
   overflow: hidden;
@@ -36,22 +33,50 @@
 .grid > * {
   min-width: 0;
   min-height: 0;
+  max-width: 100%;
 }
 
+/* Небольшие ноутбуки и планшеты */
 @media (max-width: 1200px) {
-  .grid {
-    grid-template-columns: 1fr;
+  .page {
+    gap: 14px;
+  }
 
+  .grid {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 14px;
+    overflow-x: hidden;
     overflow-y: auto;
+  }
+
+  .grid > * {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    flex-shrink: 0;
+  }
+
+  /* Active Deliveries — основной блок */
+  .grid > :first-child {
+    flex: 0 0 auto;
+    max-height: 80%;
+  }
+
+  /* Recent Activity — второстепенный блок */
+  .grid > :last-child {
+    flex: 0 0 auto;
   }
 }
 
 @media (max-width: 768px) {
   .page {
-    gap: 16px;
+    gap: 12px;
   }
 
   .grid {
-    gap: 16px;
+    gap: 12px;
   }
 }

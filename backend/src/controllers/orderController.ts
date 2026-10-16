@@ -104,23 +104,32 @@ export async function updateOrderStatus(
 }
 
 export async function advanceOrderProgress(
-  req: Request,
-  res: Response,
+req: Request,
+res: Response,
 ) {
-  try {
-    const result =
-      await advanceOrderProgressService(
-        String(req.params.id),
-      );
+console.log("[PROGRESS REQUEST]", {
+method: req.method,
+url: req.originalUrl,
+orderId: req.params.id,
+});
 
-    return res.json(result);
-  } catch (error) {
-    return handleError(
-      res,
-      error,
-      "Failed to advance delivery progress",
-    );
-  }
+try {
+const result = await advanceOrderProgressService(
+String(req.params.id),
+);
+
+return res.json(result);
+
+} catch (error) {
+console.error("[PROGRESS ERROR]", error);
+
+return handleError(
+  res,
+  error,
+  "Failed to advance delivery progress",
+);
+
+}
 }
 
 export async function getDeliveryRoutes(

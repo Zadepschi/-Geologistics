@@ -1089,37 +1089,44 @@ if (clustersModeChanged) {
     };
 
    
-const waitForMapIdle = () => {
-  if (cancelled || mapRef.current !== map) {
-    return;
-  }
+ const waitForMapIdle = () => {
+      if (cancelled || mapRef.current !== map) {
+        return;
+      }
 
-  if (map.isStyleLoaded()) {
-    console.log("[ROUTE] Map ready; drawing completed path");
-    drawCompletedRoute();
-  } else {
-    console.log("[ROUTE] Map not ready yet; waiting for idle");
-    map.once("idle", waitForMapIdle);
-  }
-};
+      if (map.isStyleLoaded()) {
+        console.log("[ROUTE] Map ready; drawing completed path");
+        drawCompletedRoute();
+      } else {
+        console.log("[ROUTE] Map not ready yet; waiting for idle");
+        map.once("idle", waitForMapIdle);
+      }
+    };
 
-if (map.isStyleLoaded()) {
-  drawCompletedRoute();
-} else {
-  map.once("idle", waitForMapIdle);
-}
+    const onStyleLoad = () => {
+      waitForMapIdle();
+    };
 
-return () => {
-  cancelled = true;
-  map.off("idle", waitForMapIdle);
-  map.off("style.load", drawCompletedRoute);
-};
+    if (map.isStyleLoaded()) {
+      drawCompletedRoute();
+    } else {
+      map.once("idle", waitForMapIdle);
+      map.once("style.load", onStyleLoad);
+    }
+
+    return () => {
+      cancelled = true;
+      map.off("idle", waitForMapIdle);
+      map.off("style.load", onStyleLoad);
+    };
 
   }, [
-    selectedVehicle,
-    isMapLoaded,
-    styleVersion,
-  ]);
+  selectedVehicleId,
+  selectedVehicle?.route?.completedPath,
+  selectedVehicle?.route?.deliveryCompleted,
+  isMapLoaded,
+  styleVersion,
+]);
 
   return (
     <Card className={styles.map}>

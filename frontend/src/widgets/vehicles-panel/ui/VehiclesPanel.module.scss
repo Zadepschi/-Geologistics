@@ -1,79 +1,72 @@
 .panel {
-box-sizing: border-box;
+  box-sizing: border-box;
 
-width: 100%;
-height: 100%;
-min-height: 0;
-min-width: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
 
-padding: 6px;
+  padding: 6px;
 
-display: grid;
-grid-template-rows: auto minmax(0, 1fr);
-gap: 6px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 6px;
 
-overflow: hidden;
+  overflow: hidden;
 }
 
 .header {
-display: flex;
-align-items: center;
-gap: 10px;
-min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
 .title {
-font-size: 20px;
-font-weight: 500;
+  font-size: 20px;
+  font-weight: 500;
 }
 
 .count {
-padding: 6px 10px;
-border-radius: 999px;
-background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .list {
-display: grid;
-grid-auto-rows: max-content;
-align-content: start;
-gap: 6px;
+  display: grid;
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: 6px;
 
-min-width: 0;
-min-height: 0;
+  min-width: 0;
+  min-height: 0;
 
-overflow-y: auto;
-overflow-x: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 
-/* Firefox */
-scrollbar-width: thin;
-scrollbar-color: #344456 transparent;
+  scrollbar-width: thin;
+  scrollbar-color:rgba(255, 255, 255, 0.08) transparent;
 
-/* Chrome / Edge / Safari */
-&::-webkit-scrollbar {
-width: 6px;
-}
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
 
-&::-webkit-scrollbar-track {
-background: transparent;
-}
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-&::-webkit-scrollbar-thumb {
-background: #344456;
-border-radius: 999px;
-}
+  &::-webkit-scrollbar-thumb {
+    background: #00d6b0;
+    border-radius: 999px;
+  }
 
-&::-webkit-scrollbar-thumb {
-background: #00d6b0;
-}
+  &::-webkit-scrollbar-button {
+    display: none;
+  }
 
-&::-webkit-scrollbar-button {
-display: none;
-width: 0;
-height: 0;
-}
-
-&::-webkit-scrollbar-corner {
-background: transparent;
-}
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }

@@ -264,3 +264,49 @@ grid-template-columns:
     justify-content: flex-end;
   }
 }
+
+@media (max-width: 1200px) {
+  .delivery {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr);
+
+    gap: 14px;
+    padding: 16px;
+
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 10px;
+
+    &:first-child {
+      padding-top: 16px;
+    }
+
+    &:last-child {
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+  }
+
+  .delivery .info:nth-of-type(2) {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 18px;
+  }
+
+  .delivery {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .destination {
+    grid-column: 1 / -1;
+  }
+
+  .status {
+    justify-content: flex-end;
+  }
+}

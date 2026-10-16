@@ -28,3 +28,26 @@ pool.query("SELECT NOW()")
   .catch((error) => {
     console.error("PostgreSQL connection: FAILED", error.message);
   });
+
+
+  async function compareLocalData() {
+  const result = await pool.query(`
+    SELECT id, status
+    FROM orders
+    ORDER BY id
+  `);
+
+  console.log("LOCAL ORDERS:");
+  console.table(result.rows);
+}
+
+compareLocalData().catch(console.error);
+
+const result = await pool.query(
+  `SELECT *
+   FROM vehicles
+   WHERE id = $1`,
+  ["vehicle-1792081312950"]
+);
+
+console.table(result.rows);

@@ -1,3 +1,4 @@
+
 .env
 node_modules
 
@@ -7,3 +8,9 @@ backend/dist/
 
 # Vite cache
 frontend/.vite/
+
+# Neon credentials and temporary migration data
+backend/.env.neon
+backend/missing-data.json
+backend/export-missing-data.js
+backend/import-to-neon.js

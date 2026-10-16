@@ -68,10 +68,19 @@ export const useLiveTracking = () => {
                    * Frontend does NOT increment
                    * currentPathIndex itself.
                    */
-                  const result =
-                    await advanceOrderProgress(
-                      route.orderId
-                    );
+                  const requestStartedAt = performance.now();
+
+const result = await advanceOrderProgress(route.orderId);
+
+const requestDurationMs = Math.round(
+  performance.now() - requestStartedAt
+);
+
+console.log("[TRACKING TIMING]", {
+  orderId: route.orderId,
+  requestDurationMs,
+  nextIndex: result.route?.currentPathIndex,
+});
 
                   if (cancelled) {
                     return;

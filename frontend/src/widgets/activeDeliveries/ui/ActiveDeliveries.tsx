@@ -82,27 +82,22 @@ export const ActiveDeliveries = () => {
   });
 
 const formatEta = (etaMinutes?: number) => {
-  if (typeof etaMinutes !== "number") {
-    return "—";
+  if (
+    typeof etaMinutes !== "number" ||
+    !Number.isFinite(etaMinutes) ||
+    etaMinutes < 0
+  ) {
+    return "Calculating...";
   }
 
-  if (etaMinutes <= 0) {
-    return "Arrived";
-  }
+  if (etaMinutes === 0) return "Arrived";
 
-  const hours = Math.floor(
-    etaMinutes / 60
-  );
+  const totalMinutes = Math.ceil(etaMinutes);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
 
-  const minutes = etaMinutes % 60;
-
-  if (hours === 0) {
-    return `${minutes} min`;
-  }
-
-  if (minutes === 0) {
-    return `${hours} h`;
-  }
+  if (hours === 0) return `${minutes} min`;
+  if (minutes === 0) return `${hours} h`;
 
   return `${hours} h ${minutes} min`;
 };
