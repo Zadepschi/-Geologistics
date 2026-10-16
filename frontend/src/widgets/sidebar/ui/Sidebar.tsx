@@ -113,7 +113,7 @@ export const Sidebar = () => {
             aria-label="Открыть меню"
             aria-expanded={mobileOpen}
           >
-            <Menu size={22} />
+            <Menu size={20} />
           </button>
 
           {mobileOpen && (
@@ -231,7 +231,7 @@ export const Sidebar = () => {
           </div>
         ))}
 
-        <div className={styles.support} title={!showLabels ? "Поддержка" : undefined}>
+        <div className={styles.support} title={!showLabels ? "Support" : undefined}>
           <span className={styles.icon}>
             <CircleHelp size={18} />
           </span>
@@ -242,7 +242,7 @@ export const Sidebar = () => {
               variant="body"
               className={styles.label}
             >
-              Поддержка
+              Support
             </Typography>
           )}
         </div>

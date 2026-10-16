@@ -292,14 +292,74 @@ grid-template-columns:
   }
 }
 
+/* Компактная мобильная версия */
 @media (max-width: 768px) {
   .card {
-    padding: 18px;
+    padding: 8px;
+  }
+
+  .header {
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 7px;
+
+    h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+  }
+
+  .count {
+    padding: 4px 7px;
+    font-size: 10px;
+  }
+
+  .search {
+    margin-bottom: 7px;
+
+    input {
+      height: 30px;
+      padding: 0 8px;
+      font-size: 11px;
+    }
+  }
+
+  .list {
+    padding-right: 2px;
   }
 
   .delivery {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 14px;
+    gap: 8px;
+    padding: 9px;
+
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 7px;
+
+    &:first-child {
+      padding-top: 9px;
+    }
+
+    &:last-child {
+      padding-bottom: 9px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    }
+  }
+
+  .order,
+  .info,
+  .destination {
+    gap: 3px;
+
+    strong {
+      font-size: 11px;
+      line-height: 1.3;
+    }
+  }
+
+  .label {
+    font-size: 9px;
   }
 
   .destination {
@@ -308,5 +368,32 @@ grid-template-columns:
 
   .status {
     justify-content: flex-end;
+    gap: 4px;
+    font-size: 10px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+  }
+}
+
+@media (max-width: 360px) {
+  .card {
+    padding: 6px;
+  }
+
+  .header h2 {
+    font-size: 14px;
+  }
+
+  .search input {
+    height: 28px;
+    font-size: 10px;
+  }
+
+  .delivery {
+    gap: 7px;
+    padding: 7px;
   }
 }

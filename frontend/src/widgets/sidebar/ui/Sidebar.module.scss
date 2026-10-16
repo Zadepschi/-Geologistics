@@ -20,7 +20,7 @@
     rgba(5, 9, 16, 0.98) 100%
   );
 
-  border-right: 1px solid rgba(255, 255, 255, 0.04);
+border-right: 1px solid rgba(148, 163, 184, 0.12);
   transition: width var(--transition), padding var(--transition);
   z-index: 100;
 }
@@ -265,16 +265,17 @@
   }
 }
 
+
 /* Мобильные устройства */
 @media (max-width: 767px) {
   .mobileMenuButton {
     position: fixed;
-    top: 16px;
+    top: 6px;
     left: 16px;
     z-index: 90;
 
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
 
     display: inline-flex;
     align-items: center;
@@ -310,6 +311,7 @@
     inset: 0 auto 0 0;
     z-index: 100;
 
+    box-sizing: border-box;
     width: min(280px, 85vw);
     height: 100vh;
     height: 100dvh;
@@ -324,6 +326,14 @@
     overflow-x: hidden;
     overflow-y: auto;
 
+    /* Убираем правую границу и контур */
+    border-right: none;
+    outline: none;
+
+    /* Скрываем полосу прокрутки */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
     transform: translateX(-100%);
     visibility: hidden;
     pointer-events: none;
@@ -334,11 +344,22 @@
       rgba(5, 9, 16, 0.99) 100%
     );
 
-    box-shadow: 12px 0 32px rgba(0, 0, 0, 0.25);
+   box-shadow:
+  4px 0 12px rgba(0, 229, 155, 0.06),
+  10px 0 28px rgba(0, 229, 155, 0.10),
+  16px 0 40px rgba(0, 0, 0, 0.25);
 
     transition:
       transform 220ms ease,
       visibility 220ms ease;
+  }
+
+  .sidebar::-webkit-scrollbar,
+  .sidebar.collapsed::-webkit-scrollbar,
+  .sidebar.tabletCollapsed::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   .sidebar.mobileOpen {
@@ -347,7 +368,7 @@
     pointer-events: auto;
   }
 
-  /* В мобильном меню всегда показываем полную навигацию. */
+  /* В мобильном меню всегда показываем полную навигацию */
   .sidebar .top,
   .sidebar.collapsed .top {
     flex-direction: row;
@@ -367,6 +388,7 @@
 
   .sidebar .link,
   .sidebar.collapsed .link {
+    box-sizing: border-box;
     width: 100%;
     min-height: 48px;
     height: auto;
@@ -392,5 +414,4 @@
     overflow: visible;
     text-overflow: clip;
   }
-  
 }

@@ -28,8 +28,6 @@ export const Footer = () => {
             Logistics Management System
           </Typography>
         </div>
-
-        <span className={styles.demoBadge}>DEMO</span>
       </div>
 
       <div className={styles.bottom}>
