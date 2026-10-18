@@ -218,3 +218,164 @@
   color: #718096;
   font-size: 13px;
 }
+
+
+
+/* Мобильные устройства */
+@media (max-width: 600px) {
+  .listCard {
+    height: 100%;
+    min-height: 0;
+    padding: 14px 12px;
+    overflow: hidden;
+  }
+
+  .listHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    h2 {
+      font-size: 20px;
+    }
+  }
+
+  .filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex-shrink: 0;
+    gap: 4px;
+    width: 100%;
+    margin-bottom: 0;
+    padding: 3px;
+    box-sizing: border-box;
+    border: 1px solid #1e2b3d;
+    border-radius: 8px;
+    background: #0f172a;
+  }
+
+  .filterButton,
+  .filterButtonActive {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-width: 0;
+    height: 36px;
+    padding: 0 5px;
+    font-size: 11px;
+    white-space: nowrap;
+
+    span {
+      flex-shrink: 0;
+      min-width: 17px;
+      height: 17px;
+      padding: 0 4px;
+      font-size: 10px;
+    }
+  }
+
+  .search {
+    flex-shrink: 0;
+    margin-bottom: 12px;
+
+    input {
+      height: 42px;
+      padding: 0 11px;
+      font-size: 13px;
+    }
+  }
+
+  .list {
+    flex: 1 1 0;
+    min-height: 0;
+    gap: 10px;
+    padding-right: 2px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  /* Карточка и кнопки остаются в одной строке */
+  .vehicleItem {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .vehicleItem > :first-child {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .editButton,
+  .deleteButton {
+    flex: 0 0 auto;
+    min-width: 0;
+    height: 34px;
+    padding: 0 7px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .empty {
+    min-height: 90px;
+    padding: 12px;
+    box-sizing: border-box;
+    text-align: center;
+    font-size: 13px;
+  }
+}
+
+/* Узкие телефоны */
+@media (max-width: 380px) {
+  .listCard {
+    padding: 12px 9px;
+  }
+
+  .listHeader {
+    h2 {
+      font-size: 18px;
+    }
+  }
+
+  .filters {
+    gap: 3px;
+    padding: 3px;
+  }
+
+  .filterButton,
+  .filterButtonActive {
+    gap: 3px;
+    padding: 0 3px;
+    font-size: 10px;
+
+    span {
+      min-width: 16px;
+      height: 16px;
+      padding: 0 3px;
+      font-size: 9px;
+    }
+  }
+
+  .vehicleItem {
+    gap: 4px;
+  }
+
+  .editButton,
+  .deleteButton {
+    height: 32px;
+    padding: 0 5px;
+    font-size: 10px;
+  }
+}

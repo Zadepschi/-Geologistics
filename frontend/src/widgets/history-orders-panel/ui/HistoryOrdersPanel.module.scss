@@ -228,3 +228,72 @@
     width: 300px;
   }
 }
+
+
+
+/* Компактные карточки истории заказов */
+
+.order {
+  display: block;
+  box-sizing: border-box;
+  padding: 11px 10px;
+}
+
+.client {
+  margin-top: 7px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.meta span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .panel {
+    width: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel {
+    top: 8px;
+    left: 8px;
+    bottom: 8px;
+    width: min(300px, calc(100vw - 16px));
+  }
+
+  .header {
+    padding: 13px 12px 10px;
+  }
+
+  .search {
+    margin: 9px;
+  }
+
+  .list {
+    min-height: 0;
+    padding: 0 6px 6px;
+  }
+
+  .order {
+    padding: 10px 8px;
+  }
+
+  .meta {
+    gap: 4px 10px;
+  }
+}

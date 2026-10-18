@@ -273,3 +273,242 @@
   padding-top: 8px;
   background: #0b1625;
 }
+
+
+/* Мобильная адаптация */
+@media (max-width: 600px) {
+  .card {
+    height: 100%;
+    min-height: 0;
+    padding: 14px 12px;
+    overflow: hidden;
+  }
+
+  .stickyHeader {
+    padding-top: 4px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    h2 {
+      font-size: 20px;
+    }
+  }
+
+  .headerActions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    gap: 4px;
+    padding: 3px;
+  }
+
+  .tab,
+  .tabActive {
+    justify-content: center;
+    gap: 5px;
+    min-width: 0;
+    height: 36px;
+    padding: 0 6px;
+    font-size: 12px;
+    white-space: nowrap;
+
+    span {
+      min-width: 18px;
+      height: 18px;
+      padding: 0 4px;
+      font-size: 10px;
+    }
+  }
+
+  .search {
+    margin-bottom: 12px;
+
+    input {
+      height: 42px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+  }
+
+  .list {
+    grid-template-columns: minmax(0, 1fr);
+    flex: 1 1 0;
+    min-height: 0;
+    gap: 10px;
+    padding: 0 2px 4px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .orderCard {
+    min-width: 0;
+    padding: 12px;
+    border-radius: 12px;
+    box-sizing: border-box;
+  }
+
+  .top {
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 12px;
+
+    h3 {
+      font-size: 15px;
+      overflow-wrap: anywhere;
+    }
+
+    p {
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .status {
+    flex-shrink: 0;
+    max-width: 45%;
+    padding: 5px 8px;
+    font-size: 11px;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  /* Каждое поле — отдельный вертикальный блок */
+  .info {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    margin-bottom: 12px;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 5px;
+      min-width: 0;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    div:first-child {
+      padding-top: 0;
+    }
+
+    span {
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    strong {
+      min-width: 0;
+      font-size: 13px;
+      line-height: 1.5;
+      text-align: left;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+  }
+
+  .actionError {
+    margin-bottom: 12px;
+    padding: 9px 10px;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+
+    button {
+      width: 100%;
+      min-height: 40px;
+      padding: 10px;
+      box-sizing: border-box;
+      font-size: 12px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .empty {
+    min-height: 90px;
+    padding: 12px;
+    box-sizing: border-box;
+    text-align: center;
+    font-size: 13px;
+  }
+}
+
+/* Очень узкие телефоны */
+@media (max-width: 380px) {
+  .card {
+    padding: 12px 9px;
+  }
+
+  .header h2 {
+    font-size: 18px;
+  }
+
+  .tab,
+  .tabActive {
+    gap: 4px;
+    padding: 0 4px;
+    font-size: 11px;
+
+    span {
+      min-width: 16px;
+      height: 16px;
+      padding: 0 3px;
+      font-size: 9px;
+    }
+  }
+
+  .orderCard {
+    padding: 10px;
+  }
+
+  .top {
+    gap: 6px;
+
+    h3 {
+      font-size: 14px;
+    }
+  }
+
+  .status {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  .info {
+    strong {
+      font-size: 12px;
+    }
+  }
+
+  .actions button {
+    min-height: 38px;
+    padding: 9px 8px;
+    font-size: 11px;
+  }
+}

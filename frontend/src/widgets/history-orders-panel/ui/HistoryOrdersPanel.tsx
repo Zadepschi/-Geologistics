@@ -26,47 +26,41 @@ export const HistoryOrdersPanel = ({
 }: HistoryOrdersPanelProps) => {
   const [search, setSearch] = useState("");
 
-  const filteredOrders = useMemo(() => {
-    const query = search.trim().toLowerCase();
 
-    if (!query) {
-      return orders;
-    }
+const filteredOrders = useMemo(() => {
+  const completedOrders = orders.filter(
+    (order) =>
+      order.status.toLowerCase() === "completed",
+  );
 
-    return orders.filter((order) => {
-      const client = clients.find(
-        (item) => item.id === order.clientId,
-      );
+  const query = search.trim().toLowerCase();
 
-      const driver = drivers.find(
-        (item) => item.id === order.driverId,
-      );
+  if (!query) {
+    return completedOrders;
+  }
 
-      const vehicle = vehicles.find(
-        (item) => item.id === order.vehicleId,
-      );
+  return completedOrders.filter((order) => {
+    const client = clients.find(
+      (item) => item.id === order.clientId,
+    );
 
-      return (
-        order.id.toLowerCase().includes(query) ||
-        order.address.toLowerCase().includes(query) ||
-        (client?.name ?? "")
-          .toLowerCase()
-          .includes(query) ||
-        (driver?.name ?? "")
-          .toLowerCase()
-          .includes(query) ||
-        (vehicle?.name ?? "")
-          .toLowerCase()
-          .includes(query)
-      );
-    });
-  }, [
-    orders,
-    clients,
-    drivers,
-    vehicles,
-    search,
-  ]);
+    const driver = drivers.find(
+      (item) => item.id === order.driverId,
+    );
+
+    const vehicle = vehicles.find(
+      (item) => item.id === order.vehicleId,
+    );
+
+    return (
+      order.id.toLowerCase().includes(query) ||
+      (client?.name ?? "").toLowerCase().includes(query) ||
+      (driver?.name ?? "").toLowerCase().includes(query) ||
+      (vehicle?.name ?? "").toLowerCase().includes(query)
+    );
+  });
+}, [orders, clients, drivers, vehicles, search]);
+
 
   return (
     <aside className={styles.panel}>
@@ -75,7 +69,7 @@ export const HistoryOrdersPanel = ({
           <h2>History Orders</h2>
 
           <span>
-            {orders.length} orders
+            {filteredOrders.length} completed orders
           </span>
         </div>
       </div>
@@ -105,7 +99,7 @@ export const HistoryOrdersPanel = ({
           </button>
         )}
       </div>
-
+        
       <div className={styles.list}>
         {filteredOrders.length === 0 ? (
           <div className={styles.empty}>
@@ -169,14 +163,6 @@ export const HistoryOrdersPanel = ({
 
                 <div
                   className={
-                    styles.address
-                  }
-                >
-                  {order.address}
-                </div>
-
-                <div
-                  className={
                     styles.meta
                   }
                 >
@@ -198,17 +184,7 @@ export const HistoryOrdersPanel = ({
                     styles.meta
                   }
                 >
-                  <span>
-                    Vehicle status: idle
-                  </span>
 
-                  <span>
-                    ETA:{" "}
-                    {typeof order.eta ===
-                    "string"
-                      ? order.eta.slice(0, 5)
-                      : "—"}
-                  </span>
                 </div>
               </button>
             );

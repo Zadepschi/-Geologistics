@@ -1,10 +1,17 @@
+
 .page {
   display: flex;
   flex-direction: column;
+
   width: 100%;
+  max-width: 1600px;
   height: 100%;
   min-height: 0;
+  min-width: 0;
+
+  margin: 0 auto;
   gap: 20px;
+
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -13,8 +20,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   flex-shrink: 0;
   gap: 24px;
+
+  padding: 10px 10px 0;
+
+  box-sizing: border-box;
 }
 
 .title {
@@ -26,18 +38,26 @@
 .subtitle {
   margin: 6px 0 0;
   color: #94a3b8;
+  font-size: 18px;
+  line-height: 1.5;
 }
 
 .addButton {
   flex-shrink: 0;
+
   padding: 10px 16px;
+
   border: 1px solid rgba(0, 200, 170, 0.45);
   border-radius: 8px;
+
   background: rgba(0, 200, 170, 0.12);
   color: #ffffff;
+
   font-size: 14px;
   font-weight: 600;
+
   cursor: pointer;
+
   transition:
     background 0.2s ease,
     border-color 0.2s ease;
@@ -55,9 +75,111 @@
 .contentGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  flex: 1;
+
+  flex: 1 1 auto;
+
   min-height: 0;
   min-width: 0;
+
   gap: 20px;
   overflow: hidden;
+}
+
+/* Mobile adaptation */
+@media (max-width: 768px) {
+  .page {
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    min-height: 0;
+
+    gap: 12px;
+    margin: 0;
+
+    overflow: hidden;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 12px;
+    padding: 10px 10px 0;
+  }
+
+  .subtitle {
+    margin-top: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .addButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    min-height: 44px;
+
+    padding: 12px;
+    font-size: 14px;
+
+    box-sizing: border-box;
+  }
+
+  .contentGrid {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+
+    gap: 12px;
+    padding: 0 10px 12px;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    box-sizing: border-box;
+  }
+
+  /* Vehicles list — taller top block */
+  .contentGrid > :first-child {
+    flex: 0 0 60%;
+    min-height: 0;
+  }
+
+  /* Vehicle details — remaining space */
+  .contentGrid > :last-child {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    gap: 10px;
+  }
+
+  .header {
+    gap: 10px;
+    padding: 10px 10px 0;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .contentGrid {
+    gap: 10px;
+    padding: 0 8px 10px;
+  }
+
+  .addButton {
+    min-height: 44px;
+  }
 }

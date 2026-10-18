@@ -172,6 +172,9 @@
   width: 100%;
 }
 
+
+
+
 /* =========================================================
    КНОПКА ОТКРЫТИЯ СПИСКА МАШИН
    ========================================================= */
@@ -240,6 +243,197 @@
 .vehiclesBackdrop {
   display: none;
 }
+
+
+
+/* =========================================================
+   HISTORY ORDERS — сворачиваемая панель на планшетах и телефонах
+   ========================================================= */
+
+.historyOrdersToggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(20, 184, 166, 0.5);
+  border-radius: 10px;
+  background: #0b1422;
+  color: #f4f7fb;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.historyOrdersToggleIcon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.historyOrdersToggleCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(20, 184, 166, 0.16);
+  color: #35e0c1;
+  font-size: 12px;
+}
+
+.historyOrdersDrawerHeader,
+.historyOrdersClose,
+.historyOrdersBackdrop {
+  display: none;
+}
+
+@media (max-width: 1200px) {
+  .historyMapSection {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .historyOrdersToggle {
+    display: inline-flex;
+  }
+
+  .historyOrdersBackdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 29;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(2, 8, 18, 0.62);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .historyOrdersDrawer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    width: min(340px, 88%);
+    padding: 12px;
+    overflow: hidden;
+    box-sizing: border-box;
+    background: #0b1422;
+    border-right: 1px solid #243247;
+    border-radius: 0 14px 14px 0;
+    box-shadow: 12px 0 35px rgba(0, 0, 0, 0.35);
+    transform: translateX(-105%);
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      transform 0.25s ease,
+      visibility 0.25s ease;
+  }
+
+  .historyOrdersDrawerOpen {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .historyOrdersDrawer > * {
+    pointer-events: auto;
+  }
+
+  .historyOrdersDrawerHeader {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
+    color: #f4f7fb;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .historyOrdersClose {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #243247;
+    border-radius: 6px;
+    background: #111d2d;
+    color: #f4f7fb;
+    font-size: 20px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .historyOrdersDrawer > :last-child {
+    position: absolute !important;
+    top: 52px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    left: 12px !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    pointer-events: auto !important;
+    touch-action: pan-y;
+  }
+
+  .historyOrdersDrawer button,
+  .historyOrdersDrawer [role="button"] {
+    pointer-events: auto;
+    touch-action: manipulation;
+  }
+}
+
+@media (max-width: 480px) {
+  .historyOrdersToggle {
+    top: 6px;
+    left: 10px;
+    min-height: 40px;
+    padding: 0 11px;
+    font-size: 12px;
+  }
+
+  .historyOrdersDrawer {
+    width: min(320px, 90%);
+    padding: 10px;
+  }
+
+  .historyOrdersDrawerHeader {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+  }
+
+  .historyOrdersDrawer > :last-child {
+    top: 48px !important;
+    right: 10px !important;
+    bottom: 10px !important;
+    left: 10px !important;
+  }
+}
+
 
 
 /* =========================================================

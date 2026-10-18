@@ -452,8 +452,6 @@
     height: 48px;
     min-height: 48px;
     gap: 6px;
-
-    /* Место слева для кнопки меню */
     padding-right: 8px;
     padding-left: 58px;
   }
@@ -482,41 +480,116 @@
     position: fixed;
     top: 54px;
     right: 8px;
-    left: 8px;
+    left: auto;
+    z-index: 1000;
 
-    width: auto;
-    max-width: none;
+    width:  min(320px, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
+    max-height: min(360px, calc(100dvh - 70px));
+
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    border-radius: 12px;
   }
 
   .notificationsHeader {
+    flex-shrink: 0;
     gap: 8px;
-    padding: 12px;
+    padding: 10px 12px;
   }
 
-  .notification {
-    gap: 9px;
-    padding: 11px 12px;
+  .headerTitle {
+    gap: 3px;
+
+    strong {
+      font-size: 13px;
+    }
+  }
+
+  .headerSubtitle {
+    font-size: 10px;
+  }
+
+  .unreadCount {
+    gap: 5px;
+    padding: 5px 7px;
+    font-size: 10px;
+  }
+
+  .countDot {
+    width: 6px;
+    height: 6px;
   }
 
   .notificationsList {
-    max-height: calc(100dvh - 80px);
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: min(290px, calc(100dvh - 130px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .notification {
+    gap: 8px;
+    padding: 9px 11px;
+  }
+
+  .notificationIndicator {
+    flex-basis: 7px;
+    width: 7px;
+  }
+
+  .notificationText {
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .notificationFooter {
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .notificationStatus {
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+
+  .markReadHint {
+    font-size: 9px;
+  }
+
+  .loadMore {
+    flex-shrink: 0;
+    min-height: 38px;
+    gap: 6px;
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .emptyNotifications {
+    gap: 6px;
+    padding: 18px 12px;
+    font-size: 11px;
+
+    strong {
+      font-size: 13px;
+    }
+  }
+
+  .emptyIcon {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
   }
 }
 
 /* Очень узкие телефоны */
 @media (max-width: 360px) {
   .header {
-    gap: 5px;
     padding-right: 6px;
     padding-left: 54px;
-  }
-
-  .title {
-    font-size: 13px;
-  }
-
-  .actions {
-    gap: 5px;
   }
 
   .user {
@@ -524,14 +597,23 @@
     font-size: 10px;
   }
 
-  .icon {
-    width: 30px;
-    height: 30px;
+  .notificationsDropdown {
+    top: 52px;
+    right: 6px;
+    width: calc(100vw - 12px);
+    max-width: calc(100vw - 12px);
+    max-height: min(320px, calc(100dvh - 64px));
   }
 
-  .unreadCount {
-    gap: 5px;
-    padding: 5px 7px;
-    font-size: 10px;
+  .notificationsHeader {
+    padding: 9px 10px;
+  }
+
+  .notification {
+    padding: 8px 10px;
+  }
+
+  .notificationsList {
+    max-height: min(250px, calc(100dvh - 120px));
   }
 }

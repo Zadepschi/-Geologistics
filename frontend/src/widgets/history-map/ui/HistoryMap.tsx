@@ -305,11 +305,6 @@ const response = await apiFetch(
         <div className={styles.mapMessage}>{error}</div>
       )}
 
-      {!order && (
-        <div className={styles.mapMessage}>
-          Select an order to view its delivery route
-        </div>
-      )}
     </div>
   );
 };
