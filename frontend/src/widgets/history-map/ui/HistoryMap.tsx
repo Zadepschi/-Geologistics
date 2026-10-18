@@ -302,8 +302,10 @@ const response = await apiFetch(
       />
 
       {error && (
-        <div className={styles.mapMessage}>{error}</div>
-      )}
+  <div role="status" className={styles.mapError}>
+    {error}
+  </div>
+)}
 
     </div>
   );
