@@ -66,8 +66,7 @@ const filteredOrders = useMemo(() => {
     <aside className={styles.panel}>
       <div className={styles.header}>
         <div>
-          <h2>History Orders</h2>
-
+        
           <span>
             {filteredOrders.length} completed orders
           </span>
