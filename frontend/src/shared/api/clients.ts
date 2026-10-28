@@ -2,8 +2,13 @@
 import type { Client } from "@/entities/client";
 import { apiFetch } from "./api";
 
-export async function fetchClients(): Promise<Client[]> {
-  const res = await apiFetch("/api/clients");
+
+export async function fetchClients(
+  signal?: AbortSignal,
+): Promise<Client[]> {
+  const res = await apiFetch("/api/clients", {
+    signal,
+  });
 
   if (!res.ok) {
     throw new Error("Failed to fetch clients");
@@ -11,6 +16,7 @@ export async function fetchClients(): Promise<Client[]> {
 
   return res.json();
 }
+
 
 export async function createClient(data: {
   name: string;

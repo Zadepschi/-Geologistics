@@ -5,12 +5,16 @@ import type { PoolClient } from "pg";
 // Orders
 // -----------------------------------------------------------------------------
 
-export async function findOrders(
-  client: PoolClient,
-) {
+
+
+
+
+export async function findOrders(client: PoolClient) {
   const result = await client.query(`
     SELECT
       o.id,
+      o.external_order_id AS "externalOrderId",
+      o.shipment_number AS "shipmentNumber",
       o.client_id AS "clientId",
       o.status,
       da.address,
@@ -28,6 +32,32 @@ export async function findOrders(
 
   return result.rows;
 }
+
+
+
+
+
+export async function findOrderByExternalId(
+  client: PoolClient,
+  externalOrderId: string,
+) {
+  const result = await client.query(
+    `
+      SELECT
+        id,
+        external_order_id AS "externalOrderId",
+        shipment_number AS "shipmentNumber",
+        status
+      FROM orders
+      WHERE external_order_id = $1
+      LIMIT 1
+    `,
+    [externalOrderId],
+  );
+
+  return result.rows[0] ?? null;
+}
+
 
 
 export async function findClientById(
@@ -696,38 +726,39 @@ export async function findDeliveryRoutes(
 }
 
 
+
+
 export async function findHistoryDeliveryRoutes(
   client: PoolClient,
+  orderId: string,
 ) {
-  const result = await client.query(`
-    SELECT
-      id,
-      order_id AS "orderId",
-      vehicle_id AS "vehicleId",
-      driver_id AS "driverId",
-
-      start_lat AS "startLat",
-      start_lng AS "startLng",
-
-      finish_lat AS "finishLat",
-      finish_lng AS "finishLng",
-
-      path,
-      current_path_index AS "currentPathIndex",
-
-      started_at AS "startedAt",
-      last_progress_at AS "lastProgressAt",
-      completed_at AS "completedAt"
-
-    FROM delivery_routes
-
-    WHERE completed_at IS NOT NULL
-
-    ORDER BY completed_at DESC
-  `);
+  const result = await client.query(
+    `
+      SELECT
+        id,
+        order_id AS "orderId",
+        vehicle_id AS "vehicleId",
+        driver_id AS "driverId",
+        start_lat AS "startLat",
+        start_lng AS "startLng",
+        finish_lat AS "finishLat",
+        finish_lng AS "finishLng",
+        path,
+        current_path_index AS "currentPathIndex",
+        started_at AS "startedAt",
+        last_progress_at AS "lastProgressAt",
+        completed_at AS "completedAt"
+      FROM delivery_routes
+      WHERE completed_at IS NOT NULL
+        AND order_id = $1
+      ORDER BY completed_at DESC
+    `,
+    [orderId],
+  );
 
   return result.rows;
 }
+
 
 // -----------------------------------------------------------------------------
 // Delivery progress
@@ -786,6 +817,7 @@ export async function completeDeliveryRoute(
 }
 
 
+
 export async function findUpdatedDeliveryRoute(
   client: PoolClient,
   routeId: number,
@@ -798,7 +830,15 @@ export async function findUpdatedDeliveryRoute(
         vehicle_id AS "vehicleId",
         driver_id AS "driverId",
 
+        start_lat AS "startLat",
+        start_lng AS "startLng",
+
+        finish_lat AS "finishLat",
+        finish_lng AS "finishLng",
+
+        path,
         current_path_index AS "currentPathIndex",
+        completed_path AS "completedPath",
 
         started_at AS "startedAt",
         last_progress_at AS "lastProgressAt",
@@ -813,6 +853,7 @@ export async function findUpdatedDeliveryRoute(
 
   return result.rows[0] ?? null;
 }
+
 
 
 // -----------------------------------------------------------------------------
@@ -842,6 +883,33 @@ export async function updateOrderVehicle(
       vehicleId,
       orderId,
     ],
+  );
+
+  return result.rows[0] ?? null;
+}
+
+
+
+export async function updateOrderDriver(
+  client: PoolClient,
+  orderId: string,
+  driverId: string,
+) {
+  const result = await client.query(
+    `
+      UPDATE orders
+      SET driver_id = $1
+      WHERE id = $2
+      RETURNING
+        id,
+        client_id AS "clientId",
+        delivery_address_id AS "deliveryAddressId",
+        driver_id AS "driverId",
+        vehicle_id AS "vehicleId",
+        status,
+        eta
+    `,
+    [driverId, orderId],
   );
 
   return result.rows[0] ?? null;

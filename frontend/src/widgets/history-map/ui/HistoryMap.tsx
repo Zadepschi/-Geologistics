@@ -68,17 +68,25 @@ export const HistoryMap = ({ order }: HistoryMapProps) => {
   const [error, setError] = useState<string | null>(null);
 
   // Загружаем завершённые маршруты из History API.
+ 
+  // Загружаем историю только для выбранного заказа.
   useEffect(() => {
+    if (!order?.id) {
+      setRoutes([]);
+      setError(null);
+      return;
+    }
+
     const controller = new AbortController();
 
     const loadHistoryRoutes = async () => {
       try {
         setError(null);
 
-const response = await apiFetch(
-  "/api/orders/delivery-routes/history",
-  { signal: controller.signal },
-);
+        const response = await apiFetch(
+          `/api/orders/delivery-routes/history?orderId=${encodeURIComponent(order.id)}`,
+          { signal: controller.signal },
+        );
 
         if (!response.ok) {
           throw new Error(
@@ -87,21 +95,31 @@ const response = await apiFetch(
         }
 
         const data: HistoryRoute[] = await response.json();
-        setRoutes(data);
+
+        if (!controller.signal.aborted) {
+          setRoutes(data);
+        }
       } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") {
+        if (
+          err instanceof Error &&
+          err.name === "AbortError"
+        ) {
           return;
         }
 
-        console.error("Failed to load history routes", err);
-        setError("Failed to load delivery route");
+        if (!controller.signal.aborted) {
+          console.error("Failed to load history routes", err);
+          setError("Failed to load delivery route");
+          setRoutes([]);
+        }
       }
     };
 
     void loadHistoryRoutes();
 
     return () => controller.abort();
-  }, []);
+  }, [order?.id]);
+
 
   // Создаём карту.
   useEffect(() => {

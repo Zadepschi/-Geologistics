@@ -7,6 +7,7 @@ export interface ClientRecord {
   email: string;
   address: string;
   isArchived: boolean;
+  source?: string | null;
 }
 
 export async function getAllClients(): Promise<ClientRecord[]> {
@@ -17,7 +18,8 @@ export async function getAllClients(): Promise<ClientRecord[]> {
       phone,
       email,
       address,
-      is_archived AS "isArchived"
+      is_archived AS "isArchived",
+      source
     FROM clients
     ORDER BY id
   `);

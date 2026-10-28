@@ -168,3 +168,39 @@ CREATE INDEX IF NOT EXISTS idx_activity_events_created_at
 
   
 
+
+
+StyleBox 
+
+ALTER TABLE orders
+  ADD COLUMN IF NOT EXISTS external_order_id VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS shipment_number VARCHAR(50);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_orders_external_order_id
+  ON orders(external_order_id)
+  WHERE external_order_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_orders_shipment_number
+  ON orders(shipment_number)
+  WHERE shipment_number IS NOT NULL;
+
+
+
+ALTER TABLE public.delivery_addresses
+ADD COLUMN IF NOT EXISTS recipient_phone VARCHAR(50);
+
+
+
+BEGIN;
+
+ALTER TABLE clients
+    ADD COLUMN IF NOT EXISTS external_customer_id VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS source VARCHAR(50);
+
+CREATE UNIQUE INDEX IF NOT EXISTS
+    clients_source_external_customer_id_unique
+ON clients (source, external_customer_id)
+WHERE source IS NOT NULL
+  AND external_customer_id IS NOT NULL;
+
+COMMIT;

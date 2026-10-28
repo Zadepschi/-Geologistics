@@ -14,6 +14,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import deliveryRouteRoutes from "./routes/deliveryRouteRoutes.js";
 
 import { updateOrderStatus } from "./services/orderService.js";
+import styleboxIntegrationRoutes from "./routes/styleboxIntegrationRoutes.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -33,6 +34,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/activities", activityRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/delivery-routes", deliveryRouteRoutes);
+app.use("/api/integrations/stylebox", styleboxIntegrationRoutes);
 
 /* -------------------------------------------------------------------------- */
 /*                                    Health                                  */

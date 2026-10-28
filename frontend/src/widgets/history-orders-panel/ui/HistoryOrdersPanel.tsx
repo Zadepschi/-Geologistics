@@ -25,6 +25,21 @@ export const HistoryOrdersPanel = ({
   onSelectOrder,
 }: HistoryOrdersPanelProps) => {
   const [search, setSearch] = useState("");
+  console.log("[HISTORY PANEL DEBUG] received props:", {
+  ordersIsArray: Array.isArray(orders),
+  ordersCount: orders.length,
+  completedCount: orders.filter(
+    (order) =>
+      String(order.status).toLowerCase() === "completed",
+  ).length,
+  firstOrder: orders[0]
+    ? {
+        id: orders[0].id,
+        status: orders[0].status,
+      }
+    : null,
+  search,
+});
 
 
 const filteredOrders = useMemo(() => {

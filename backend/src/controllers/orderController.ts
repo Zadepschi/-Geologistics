@@ -10,6 +10,7 @@ import {
   listDeliveryRoutes,
   listHistoryDeliveryRoutes,
   assignOrderVehicle as assignOrderVehicleService,
+  assignOrderDriver as assignOrderDriverService,
 } from "../services/orderService.js";
 
 function handleError(
@@ -30,19 +31,12 @@ function handleError(
   });
 }
 
-export async function getOrders(
-  _req: Request,
-  res: Response,
-) {
+export async function getOrders(_req: Request, res: Response) {
   try {
     const orders = await listOrders();
     return res.json(orders);
   } catch (error) {
-    return handleError(
-      res,
-      error,
-      "Failed to fetch orders",
-    );
+    return handleError(res, error, "Failed to fetch orders");
   }
 }
 
@@ -145,13 +139,22 @@ export async function getDeliveryRoutes(
   }
 }
 
+
 export async function getHistoryDeliveryRoutes(
-  _req: Request,
+  req: Request,
   res: Response,
 ) {
   try {
-    const routes =
-      await listHistoryDeliveryRoutes();
+    const orderId =
+      typeof req.query.orderId === "string"
+        ? req.query.orderId
+        : undefined;
+
+    if (!orderId) {
+      return res.json([]);
+    }
+
+    const routes = await listHistoryDeliveryRoutes(orderId);
 
     return res.json(routes);
   } catch (error) {
@@ -162,6 +165,7 @@ export async function getHistoryDeliveryRoutes(
     );
   }
 }
+
 
 export async function assignOrderVehicle(
   req: Request,
@@ -180,6 +184,27 @@ export async function assignOrderVehicle(
       res,
       error,
       "Failed to assign vehicle to order",
+    );
+  }
+}
+
+
+export async function assignOrderDriver(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const order = await assignOrderDriverService(
+      String(req.params.id),
+      req.body,
+    );
+
+    return res.json(order);
+  } catch (error) {
+    return handleError(
+      res,
+      error,
+      "Failed to assign driver to order",
     );
   }
 }

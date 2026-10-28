@@ -8,11 +8,14 @@ import type { Driver } from "@/entities/driver";
 import { fetchDrivers } from "@/shared/api/drivers";
 
 import type { Order } from "@/entities/order";
+
 import {
   fetchOrders,
   updateOrderStatus,
   updateOrderVehicle,
+  updateOrderDriver,
 } from "@/shared/api/orders";
+
 
 import { useFleetStore } from "@/shared/store/fleet";
 
@@ -84,7 +87,7 @@ export const DispatchOrders = ({ onEditOrder }: DispatchOrdersProps) => {
   const [orderView, setOrderView] = useState<OrderView>("active");
   const [assignOrder, setAssignOrder] = useState<Order | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
-
+  const [selectedDriverId, setSelectedDriverId] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
   const [assignError, setAssignError] = useState("");
   const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
@@ -120,9 +123,20 @@ export const DispatchOrders = ({ onEditOrder }: DispatchOrdersProps) => {
     (state) => state.setVehicleRouteState
   );
 
-  const availableVehicles = vehicles.filter(
-    (vehicle) => vehicle.status === "idle"
-  );
+ 
+const availableVehicles = vehicles.filter(
+  (vehicle) =>
+    vehicle.status === "idle" &&
+    !vehicle.isArchived
+);
+
+  
+const availableDrivers = drivers.filter(
+  (driver) =>
+    driver.status === "available" &&
+    (!driver.vehicleId || driver.vehicleId === selectedVehicleId),
+);
+
 
   const activeOrders = orders.filter(
     (order) =>
@@ -193,7 +207,37 @@ export const DispatchOrders = ({ onEditOrder }: DispatchOrdersProps) => {
         throw new Error("Assigned vehicle does not have a valid location.");
       }
 
-      const destination = await geocodeAddress(order.address);
+     
+let destination: { longitude: number; latitude: number };
+
+if (
+  typeof order.longitude === "number" &&
+  typeof order.latitude === "number" &&
+  Number.isFinite(order.longitude) &&
+  Number.isFinite(order.latitude) &&
+  order.longitude >= -180 &&
+  order.longitude <= 180 &&
+  order.latitude >= -90 &&
+  order.latitude <= 90
+) {
+  destination = {
+    longitude: order.longitude,
+    latitude: order.latitude,
+  };
+} else {
+  const fullAddress = [
+    order.address,
+    order.city,
+    order.postalCode,
+    "New Mexico",
+    "United States",
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  destination = await geocodeAddress(fullAddress);
+}
+
 
       const start: [number, number] = [
         vehicle.telemetry.lng,
@@ -204,6 +248,40 @@ export const DispatchOrders = ({ onEditOrder }: DispatchOrdersProps) => {
         destination.longitude,
         destination.latitude,
       ];
+
+   
+console.log(
+  "Delivery route debug:",
+  JSON.stringify(
+    {
+      orderId: order.id,
+      address: order.address,
+      vehicleLocation: {
+        longitude: start[0],
+        latitude: start[1],
+      },
+      geocodedDestination: {
+        longitude: finish[0],
+        latitude: finish[1],
+      },
+      distanceKm: (
+        6371 *
+        2 *
+        Math.asin(
+          Math.sqrt(
+            Math.sin(((finish[1] - start[1]) * Math.PI) / 360) ** 2 +
+              Math.cos((start[1] * Math.PI) / 180) *
+                Math.cos((finish[1] * Math.PI) / 180) *
+                Math.sin(((finish[0] - start[0]) * Math.PI) / 360) ** 2
+          )
+        )
+      ).toFixed(2),
+    },
+    null,
+    2
+  )
+);
+
 
       const route = await fetchStreetRoute(start, finish, MAPBOX_TOKEN);
 
@@ -313,15 +391,18 @@ export const DispatchOrders = ({ onEditOrder }: DispatchOrdersProps) => {
     }
   };
 
-  const handleOpenAssignVehicle = (order: Order) => {
-    if (order.status === "in-progress" || order.status === "completed") {
-      return;
-    }
 
-    setAssignOrder(order);
-    setSelectedVehicleId("");
-    setAssignError("");
-  };
+const handleOpenAssignVehicle = (order: Order) => {
+  if (order.status === "in-progress" || order.status === "completed") {
+    return;
+  }
+
+  setAssignOrder(order);
+  setSelectedVehicleId("");
+  setSelectedDriverId("");
+  setAssignError("");
+};
+
 
   const handleCloseAssignVehicle = () => {
     if (isAssigning) {
@@ -331,71 +412,69 @@ export const DispatchOrders = ({ onEditOrder }: DispatchOrdersProps) => {
     setAssignOrder(null);
     setSelectedVehicleId("");
     setAssignError("");
+    setSelectedDriverId("");
   };
 
-  const handleAssignVehicle = async () => {
-    if (!assignOrder || !selectedVehicleId) {
-      setAssignError("Please select a vehicle.");
-      return;
-    }
+ 
+const handleAssignVehicle = async () => {
+  if (!assignOrder) {
+    setAssignError("Order not found.");
+    return;
+  }
 
-    const selectedVehicle = vehicles.find(
-      (vehicle) => vehicle.id === selectedVehicleId
-    );
+  if (!selectedVehicleId || !selectedDriverId) {
+    setAssignError("Please select both a vehicle and a driver.");
+    return;
+  }
 
-    if (!selectedVehicle) {
-      setAssignError("Selected vehicle was not found.");
-      return;
-    }
+  const selectedVehicle = vehicles.find(
+    (vehicle) => vehicle.id === selectedVehicleId
+  );
 
-    if (selectedVehicle.status !== "idle") {
-      setAssignError("Selected vehicle is no longer available.");
-      return;
-    }
+  if (!selectedVehicle || selectedVehicle.status !== "idle") {
+    setAssignError("Selected vehicle is no longer available.");
+    return;
+  }
 
-    if (
-      typeof selectedVehicle.telemetry.lat !== "number" ||
-      typeof selectedVehicle.telemetry.lng !== "number"
-    ) {
-      setAssignError("Selected vehicle does not have a valid location.");
-      return;
-    }
+  setAssignError("");
+  setIsAssigning(true);
 
+  try {
+    await updateOrderVehicle(assignOrder.id, selectedVehicleId);
+
+    await updateOrderDriver(assignOrder.id, selectedDriverId);
+
+    const [refreshedOrders, refreshedDrivers] = await Promise.all([
+  fetchOrders(),
+  fetchDrivers(),
+]);
+
+setOrders(refreshedOrders);
+setDrivers(refreshedDrivers);
+
+    setAssignOrder(null);
+    setSelectedVehicleId("");
+    setSelectedDriverId("");
     setAssignError("");
-    setIsAssigning(true);
+  } catch (error) {
+    console.error("Failed to assign vehicle and driver", error);
 
     try {
-      /*
-       * Assigning a vehicle does NOT create or reset a delivery route.
-       * The route is created only when the user presses "Start delivery".
-       */
-      const updatedOrder = await updateOrderVehicle(
-        assignOrder.id,
-        selectedVehicleId
-      );
-
-      setOrders((currentOrders) =>
-        currentOrders.map((order) =>
-          order.id === updatedOrder.id ? updatedOrder : order
-        )
-      );
-
-      setAssignOrder(null);
-      setSelectedVehicleId("");
-      setAssignError("");
-    } catch (error) {
-      console.error(
-        `Failed to assign vehicle to order ${assignOrder.id}`,
-        error
-      );
-
-      setAssignError(
-        error instanceof Error ? error.message : "Failed to assign vehicle."
-      );
-    } finally {
-      setIsAssigning(false);
+      setOrders(await fetchOrders());
+    } catch (refreshError) {
+      console.error("Failed to refresh orders", refreshError);
     }
-  };
+
+    setAssignError(
+      error instanceof Error
+        ? error.message
+        : "Failed to assign vehicle and driver."
+    );
+  } finally {
+    setIsAssigning(false);
+  }
+};
+
 
   return (
     <>
@@ -460,8 +539,10 @@ export const DispatchOrders = ({ onEditOrder }: DispatchOrdersProps) => {
               order.status !== "in-progress" &&
               order.status !== "completed";
 
-            const canStartDelivery =
-              order.status === "assigned" && !!assignedVehicle;
+           const canStartDelivery =
+  order.status === "assigned" &&
+  !!assignedVehicle &&
+  !!order.driverId;
 
             const canMarkCompleted = order.status !== "completed";
 
@@ -478,20 +559,32 @@ export const DispatchOrders = ({ onEditOrder }: DispatchOrdersProps) => {
 
             return (
               <div key={order.id} className={styles.orderCard}>
-                <div className={styles.top}>
-                  <div>
-                    <h3>{order.id}</h3>
-                    <p>{client?.name ?? "Unknown client"}</p>
-                  </div>
+               <div className={styles.top}>
+  <div>
+    <h3>{order.id}</h3>
+    <p>{client?.name ?? "Unknown client"}</p>
 
-                  <span className={styles.status}>{order.status}</span>
-                </div>
+    {client?.source?.toLowerCase() === "stylebox" && (
+      <span className={styles.sourceBadge}>STYLEBOX</span>
+    )}
+  </div>
+
+  <span className={styles.status}>{order.status}</span>
+</div>
 
                 <div className={styles.info}>
                   <div>
-                    <span>Address</span>
-                    <strong>{order.address}</strong>
-                  </div>
+  <span>Address</span>
+  <strong>
+    {[
+      order.address,
+      order.city,
+      order.postalCode,
+    ]
+      .filter(Boolean)
+      .join(", ")}
+  </strong>
+</div>
 
                 
 <div>
@@ -591,6 +684,9 @@ export const DispatchOrders = ({ onEditOrder }: DispatchOrdersProps) => {
         onVehicleChange={setSelectedVehicleId}
         onClose={handleCloseAssignVehicle}
         onAssign={handleAssignVehicle}
+        drivers={availableDrivers}
+        selectedDriverId={selectedDriverId}
+        onDriverChange={setSelectedDriverId}
       />
     </>
   );

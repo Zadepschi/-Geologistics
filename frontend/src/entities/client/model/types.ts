@@ -1,3 +1,4 @@
+
 export interface Client {
   id: string;
   name: string;
@@ -5,4 +6,5 @@ export interface Client {
   email: string;
   address: string;
   isArchived: boolean;
+  source?: string | null;
 }

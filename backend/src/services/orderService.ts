@@ -35,6 +35,7 @@ import {
   completeDeliveryRoute,
   findUpdatedDeliveryRoute,
   updateOrderVehicle,
+   updateOrderDriver,
 } from "../repositories/orderRepository.js";
 
 import {
@@ -94,6 +95,10 @@ type UpdateOrderStatusInput = {
 
 type AssignVehicleInput = {
   vehicleId?: string;
+};
+
+type AssignDriverInput = {
+  driverId?: string;
 };
 
 function isValidCoordinate(value: unknown): value is number {
@@ -258,6 +263,7 @@ function createDeliveryRouteResponse(route: any) {
 // -----------------------------------------------------------------------------
 // GET ORDERS
 // -----------------------------------------------------------------------------
+
 
 export async function listOrders() {
   return findOrders(pool as unknown as PoolClient);
@@ -585,6 +591,14 @@ export async function updateOrderStatus(
 
     if (status === "in-progress") {
       const route = input.route;
+
+
+      if (!order.vehicleId || !order.driverId) {
+  throw new OrderServiceError(
+    "Assign both a vehicle and a driver before starting delivery",
+    409,
+  );
+}
 
       if (
         !route?.start ||
@@ -1139,14 +1153,16 @@ export async function listDeliveryRoutes() {
 }
 
 
-export async function listHistoryDeliveryRoutes() {
+export async function listHistoryDeliveryRoutes(orderId: string) {
   return findHistoryDeliveryRoutes(
     pool as unknown as PoolClient,
+    orderId,
   );
 }
 // -----------------------------------------------------------------------------
 // ASSIGN VEHICLE
 // -----------------------------------------------------------------------------
+
 
 export async function assignOrderVehicle(
   orderId: string,
@@ -1164,17 +1180,10 @@ export async function assignOrderVehicle(
   try {
     await client.query("BEGIN");
 
-    const order =
-      await findOrderForUpdate(
-        client,
-        orderId,
-      );
+    const order = await findOrderForUpdate(client, orderId);
 
     if (!order) {
-      throw new OrderServiceError(
-        "Order not found",
-        404,
-      );
+      throw new OrderServiceError("Order not found", 404);
     }
 
     if (
@@ -1194,32 +1203,33 @@ export async function assignOrderVehicle(
       );
     }
 
-    const vehicle =
-      await lockVehicle(
-        client,
-        input.vehicleId,
-      );
+const vehicle = await lockVehicle(client, input.vehicleId);
 
-    if (!vehicle) {
-      throw new OrderServiceError(
-        "Vehicle not found",
-        404,
-      );
-    }
+if (!vehicle) {
+  throw new OrderServiceError("Vehicle not found", 404);
+}
 
-    if (vehicle.status !== "idle") {
-      throw new OrderServiceError(
-        "Vehicle is not available",
-        409,
-      );
-    }
+// Запрещаем назначать архивный автомобиль
+if (vehicle.isArchived) {
+  throw new OrderServiceError(
+    "Archived vehicles cannot be assigned to orders",
+    409,
+  );
+}
 
-    const activeVehicleOrder =
-      await findActiveVehicleOrder(
-        client,
-        input.vehicleId,
-        order.id,
-      );
+// Разрешаем назначение только свободного автомобиля
+if (vehicle.status !== "idle") {
+  throw new OrderServiceError(
+    "Vehicle is not available",
+    409,
+  );
+}
+
+    const activeVehicleOrder = await findActiveVehicleOrder(
+      client,
+      input.vehicleId,
+      order.id,
+    );
 
     if (activeVehicleOrder) {
       throw new OrderServiceError(
@@ -1228,22 +1238,118 @@ export async function assignOrderVehicle(
       );
     }
 
-    const driver =
-      await lockDriver(
-        client,
-        order.driverId,
-      );
+    // Проверяем совместимость водителя, только если он уже назначен.
+    if (order.driverId) {
+      const driver = await lockDriver(client, order.driverId);
 
-    if (!driver) {
+      if (!driver) {
+        throw new OrderServiceError("Order driver not found", 409);
+      }
+
+      if (
+        driver.vehicleId &&
+        driver.vehicleId !== input.vehicleId
+      ) {
+        throw new OrderServiceError(
+          "Selected driver is assigned to another vehicle",
+          409,
+        );
+      }
+    }
+
+    // Освобождаем прежний автомобиль, только если он назначен.
+    if (order.vehicleId) {
+      await setVehicleStatus(client, order.vehicleId, "idle");
+    }
+
+    await setVehicleStatus(client, input.vehicleId, "assigned");
+
+    const updatedOrder = await updateOrderVehicle(
+      client,
+      order.id,
+      input.vehicleId,
+    );
+
+    if (!updatedOrder) {
+      throw new OrderServiceError("Order not found", 404);
+    }
+
+    await createNotification(
+      client,
+      `Vehicle assigned: ${input.vehicleId} to order ${order.id}`,
+    );
+
+    const deliveryAddress = await findDeliveryAddress(
+      client,
+      updatedOrder.deliveryAddressId,
+    );
+
+    await client.query("COMMIT");
+
+    return createOrderResponse(updatedOrder, deliveryAddress);
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {
+      // Игнорируем ошибку отката.
+    }
+
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+
+
+
+export async function assignOrderDriver(
+  orderId: string,
+  input: AssignDriverInput,
+) {
+  if (!input.driverId) {
+    throw new OrderServiceError("driverId is required", 400);
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const order = await findOrderForUpdate(client, orderId);
+
+    if (!order) {
+      throw new OrderServiceError("Order not found", 404);
+    }
+
+    if (order.status === "in-progress" || order.status === "completed") {
       throw new OrderServiceError(
-        "Order driver not found",
+        "Driver cannot be reassigned for this order status",
         409,
       );
     }
 
+    if (order.driverId === input.driverId) {
+      throw new OrderServiceError(
+        "This driver is already assigned to the order",
+        409,
+      );
+    }
+
+    const driver = await lockDriver(client, input.driverId);
+
+    if (!driver) {
+      throw new OrderServiceError("Driver not found", 404);
+    }
+
+    if (driver.status !== "available") {
+      throw new OrderServiceError("Driver is not available", 409);
+    }
+
     if (
+      order.vehicleId &&
       driver.vehicleId &&
-      driver.vehicleId !== input.vehicleId
+      driver.vehicleId !== order.vehicleId
     ) {
       throw new OrderServiceError(
         "Selected driver is assigned to another vehicle",
@@ -1251,56 +1357,52 @@ export async function assignOrderVehicle(
       );
     }
 
-    // Освобождаем старую машину.
-    await setVehicleStatus(
+    const activeDriverOrder = await findActiveDriverOrder(
       client,
-      order.vehicleId,
-      "idle",
+      input.driverId,
     );
 
-    // Назначаем новую.
-    await setVehicleStatus(
-      client,
-      input.vehicleId,
-      "assigned",
-    );
-
-    const updatedOrder =
-      await updateOrderVehicle(
-        client,
-        order.id,
-        input.vehicleId,
-      );
-
-    if (!updatedOrder) {
+    if (activeDriverOrder) {
       throw new OrderServiceError(
-        "Order not found",
-        404,
+        "Driver is already assigned to an active order",
+        409,
       );
     }
 
-    await createNotification(
-  client,
-  `Vehicle assigned: ${input.vehicleId} to order ${order.id}`,
-);
+    if (order.driverId) {
+      await setDriverStatus(client, order.driverId, "available");
+    }
 
-    const deliveryAddress =
-      await findDeliveryAddress(
-        client,
-        updatedOrder.deliveryAddressId,
-      );
+    await setDriverStatus(client, input.driverId, "on-duty");
+
+    const updatedOrder = await updateOrderDriver(
+      client,
+      order.id,
+      input.driverId,
+    );
+
+    if (!updatedOrder) {
+      throw new OrderServiceError("Order not found", 404);
+    }
+
+    await createNotification(
+      client,
+      `Driver assigned: ${input.driverId} to order ${order.id}`,
+    );
+
+    const deliveryAddress = await findDeliveryAddress(
+      client,
+      updatedOrder.deliveryAddressId,
+    );
 
     await client.query("COMMIT");
 
-    return createOrderResponse(
-      updatedOrder,
-      deliveryAddress,
-    );
+    return createOrderResponse(updatedOrder, deliveryAddress);
   } catch (error) {
     try {
       await client.query("ROLLBACK");
     } catch {
-      // ignore rollback error
+      // Preserve the original error.
     }
 
     throw error;

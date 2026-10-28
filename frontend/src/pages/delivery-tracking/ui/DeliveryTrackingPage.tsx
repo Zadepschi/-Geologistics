@@ -50,21 +50,22 @@ export const DeliveryTrackingPage = () => {
       !vehicle.route?.deliveryCompleted,
   ).length;
 
- useEffect(() => {
-    if (view !== "history") {
-      return;
-    }
+ 
 
-    Promise.all([fetchOrders(), fetchClients(), fetchDrivers()])
-      .then(([ordersData, clientsData, driversData]) => {
-        setOrders(ordersData);
-        setClients(clientsData);
-        setDrivers(driversData);
-      })
-      .catch((error) => {
-        console.error("Failed to load history data", error);
-      });
-  }, [view]);
+useEffect(() => {
+  if (view !== "history") return;
+
+  Promise.all([fetchOrders(), fetchClients(), fetchDrivers()])
+    .then(([ordersData, clientsData, driversData]) => {
+      setOrders(ordersData);
+      setClients(clientsData);
+      setDrivers(driversData);
+    })
+    .catch((error) => {
+      console.error("Failed to load history data", error);
+    });
+}, [view]);
+
 
   useEffect(() => {
     setIsVehiclesPanelOpen(false);
@@ -250,6 +251,8 @@ export const DeliveryTrackingPage = () => {
               ×
             </button>
           </div>
+
+             
 
           <HistoryOrdersPanel
             orders={orders}

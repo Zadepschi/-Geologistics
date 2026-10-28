@@ -19,26 +19,13 @@ type ClientView = "completed" | "in-progress" |  "archived" ;
 export const ClientsList = ({
   onEdit,
 }: ClientsListProps) => {
-  const [clients, setClients] =
-    useState<Client[]>([]);
-
-  const [orders, setOrders] =
-    useState<Order[]>([]);
-
-  const [search, setSearch] =
-    useState("");
-
- const [view, setView] =
-  useState<ClientView>("in-progress");
-
-  const [clientToArchive, setClientToArchive] =
-    useState<Client | null>(null);
-
-  const [isArchiving, setIsArchiving] =
-    useState(false);
-
-  const [archiveError, setArchiveError] =
-    useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [search, setSearch] = useState("");
+  const [view, setView] = useState<ClientView>("in-progress");
+  const [clientToArchive, setClientToArchive] = useState<Client | null>(null);  
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState("");
 
   useEffect(() => {
     fetchClients()
@@ -311,11 +298,15 @@ const lastOrder =
                 className={styles.clientCard}
               >
                 <div className={styles.main}>
-                  <div>
-                    <h3>{client.name}</h3>
+                 <div>
+  <h3>{client.name}</h3>
 
-                    <p>{client.email}</p>
-                  </div>
+  <p>{client.email}</p>
+
+  {client.source?.toLowerCase() === "stylebox" && (
+    <span className={styles.sourceBadge}>STYLEBOX</span>
+  )}
+</div>
 
                 <span className={styles.ordersCount}>
   {clientOrders.length} orders

@@ -5,8 +5,21 @@ import type {
 } from "@/entities/order";
 import { apiFetch } from "./api";
 
-export async function fetchOrders(): Promise<Order[]> {
-  const res = await apiFetch("/api/orders");
+
+export async function fetchOrders(
+  limit = 20,
+  offset = 0,
+  signal?: AbortSignal,
+): Promise<Order[]> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+
+  const res = await apiFetch(
+    `/api/orders?${params.toString()}`,
+    { signal },
+  );
 
   if (!res.ok) {
     throw new Error("Failed to fetch orders");
@@ -14,6 +27,7 @@ export async function fetchOrders(): Promise<Order[]> {
 
   return res.json();
 }
+
 
 export interface DeliveryRoute {
   id: number;
@@ -130,6 +144,31 @@ export async function updateOrderVehicle(
     throw new Error(
       data?.message ??
         `Failed to assign vehicle: ${res.status}`,
+    );
+  }
+
+  return res.json();
+}
+
+export async function updateOrderDriver(
+  id: string,
+  driverId: string,
+): Promise<Order> {
+  const res = await apiFetch(
+    `/api/orders/${encodeURIComponent(id)}/driver`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ driverId }),
+    },
+  );
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(
+      data?.message ?? data?.error ?? "Failed to assign driver",
     );
   }
 

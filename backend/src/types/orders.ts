@@ -71,15 +71,9 @@ export interface Order {
 
   eta: string;
 
-  vehicleId: string;
+  vehicleId?: string | null;
 
-  driverId?: string;
+  driverId?: string | null;
 
-  /**
-   * Состояние текущего/последнего маршрута доставки.
-   *
-   * Прогресс маршрута хранится на backend в PostgreSQL,
-   * а не только в памяти frontend.
-   */
   deliveryRoute?: DeliveryRouteState | null;
 }

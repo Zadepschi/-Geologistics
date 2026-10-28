@@ -2,8 +2,13 @@
 import type { Driver } from "@/entities/driver";
 import { apiFetch } from "./api";
 
-export async function fetchDrivers(): Promise<Driver[]> {
-  const res = await apiFetch("/api/drivers");
+
+export async function fetchDrivers(
+  signal?: AbortSignal,
+): Promise<Driver[]> {
+  const res = await apiFetch("/api/drivers", {
+    signal,
+  });
 
   if (!res.ok) {
     throw new Error("Failed to fetch drivers");
@@ -11,6 +16,7 @@ export async function fetchDrivers(): Promise<Driver[]> {
 
   return res.json();
 }
+
 
 export async function createDriver(data: {
   id: string;
